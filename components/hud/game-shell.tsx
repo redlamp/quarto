@@ -6,6 +6,7 @@ import { TopBar } from './top-bar';
 import { BottomHud } from './bottom-hud';
 import { SettingsDrawer } from './settings-drawer';
 import { WinBanner } from './win-banner';
+import { UiThemeSync } from './ui-theme-sync';
 import { useQuartoClient } from '@/hooks/use-quarto-client';
 import { useAiOpponent } from '@/hooks/use-ai-opponent';
 import { useUiStore } from '@/lib/state/ui-store';
@@ -36,6 +37,7 @@ export function GameShell() {
 
   return (
     <main className="relative flex h-screen w-screen flex-col overflow-hidden">
+      <UiThemeSync />
       <TopBar state={state} />
       <div className="relative flex-1">
         <BoardCanvas state={state} moves={moves} />

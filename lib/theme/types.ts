@@ -4,6 +4,7 @@
 export interface ThemeColors {
   surface: string;
   surfaceMuted: string;
+  groundSurface: string;
   boardSurface: string;
   rackSurface: string;
   ink: string;

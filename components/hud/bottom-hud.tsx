@@ -42,15 +42,20 @@ export function BottomHud({ state, moves }: BottomHudProps) {
       ? describe(G.pendingHandoff)
       : null;
 
+  const activeLabel = stage === 'place' ? handedLabel : stage === 'pick' ? handoffLabel : null;
+  const attrLines = activeLabel ? activeLabel.split(' ') : null;
+
   return (
     <div className="absolute right-0 bottom-0 left-0 z-10 flex items-end justify-center gap-4 px-6 py-6">
-      <div className="bg-surface-muted flex h-20 w-20 flex-col items-center justify-center rounded-md font-mono text-[10px] leading-tight text-slate-700">
-        {stage === 'place' && handedLabel ? (
-          <span className="text-center">{handedLabel.split(' ').join('\n')}</span>
-        ) : stage === 'pick' && handoffLabel ? (
-          <span className="text-center">{handoffLabel.split(' ').join('\n')}</span>
+      <div className="flex h-24 w-24 flex-col items-center justify-center gap-0.5 rounded-md bg-[var(--color-surface-muted)] font-mono text-xs leading-tight text-[var(--color-ink)] capitalize">
+        {attrLines ? (
+          attrLines.map((part) => (
+            <span key={part} className="block">
+              {part}
+            </span>
+          ))
         ) : (
-          <span className="text-slate-400">—</span>
+          <span className="text-[var(--color-fog)]">—</span>
         )}
       </div>
 

@@ -20,6 +20,8 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setOpponent = useUiStore((s) => s.setOpponent);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
   const setConfirmEnabled = useUiStore((s) => s.setConfirmEnabled);
+  const uiTheme = useUiStore((s) => s.uiTheme);
+  const setUiTheme = useUiStore((s) => s.setUiTheme);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -55,8 +57,26 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
           </section>
 
           <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Visual</h3>
-            <p className="text-slate text-xs">Camera, lighting, motion, theme — wired in M3.</p>
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">UI theme</h3>
+            <div className="flex gap-2">
+              <Button
+                variant={uiTheme === 'light' ? 'default' : 'outline'}
+                onClick={() => setUiTheme('light')}
+              >
+                Light
+              </Button>
+              <Button
+                variant={uiTheme === 'dark' ? 'default' : 'outline'}
+                onClick={() => setUiTheme('dark')}
+              >
+                Dark
+              </Button>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">3D visuals</h3>
+            <p className="text-slate text-xs">Camera, lighting, motion presets — wired in M3.</p>
           </section>
 
           <section className="flex flex-col gap-2">

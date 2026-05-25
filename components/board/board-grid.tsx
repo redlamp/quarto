@@ -14,7 +14,12 @@ export interface BoardGridProps {
   canPlace: boolean;
   onSelectCell: (cell: number) => void;
   onConfirmPlace: () => void;
+  onClearPendingPlace: () => void;
 }
+
+// Distance from piece base to Html button anchor — matches PieceRack so the
+// Give and Place buttons sit at the same offset relative to their piece.
+const BUTTON_BASE_OFFSET = 0.5;
 
 function cellPosition(idx: number, pitch: number): [number, number, number] {
   const row = Math.floor(idx / 4);
@@ -30,6 +35,7 @@ export function BoardGrid({
   canPlace,
   onSelectCell,
   onConfirmPlace,
+  onClearPendingPlace,
 }: BoardGridProps) {
   const { theme } = useTheme();
   const { cellPitch, cellSize } = theme.piece;
@@ -41,7 +47,12 @@ export function BoardGrid({
     <group>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
         <planeGeometry args={[cellPitch * 4 + 0.4, cellPitch * 4 + 0.4]} />
-        <meshStandardMaterial color={c.boardSurface} roughness={0.55} metalness={0.04} />
+        <meshStandardMaterial
+          color={c.boardSurface}
+          roughness={0.9}
+          metalness={0}
+          envMapIntensity={0.2}
+        />
       </mesh>
 
       {indices.map((idx) => {
@@ -51,22 +62,52 @@ export function BoardGrid({
         const isOnWinLine = winLine?.includes(idx) ?? false;
         const [x, , z] = cellPosition(idx, cellPitch);
         const filled = piece !== null && piece !== undefined;
-        const showGhost = !filled && ghostPiece !== null && (isPending || (isHovered && canPlace));
-        // First click on an empty cell selects it (ghost). Second click on the
-        // same (pending) cell confirms the place. Clicking another empty cell
-        // switches the selection.
-        const handleClick = (e: React.SyntheticEvent) => {
+        // Hover preview is active only when no cell is selected. Once a tile is
+        // pending, the ghost locks to that cell and other empty cells stop
+        // previewing on hover.
+        const showGhost =
+          !filled &&
+          ghostPiece !== null &&
+          (isPending || (pendingPlace === null && isHovered && canPlace));
+
+        // Tile click target (cell surface). Mirrors rack slot logic:
+        // — on the pending cell, clicking the bare tile cancels the selection
+        // — on any other empty cell, clicking selects it (switches selection)
+        const tileClick = (e: React.SyntheticEvent) => {
           e.stopPropagation();
+          if (!canPlace) return;
+          if (isPending) onClearPendingPlace();
+          else onSelectCell(idx);
+        };
+
+        // Ghost piece click target (raised above the cell). Mirrors rack raised
+        // piece logic: clicking the ghost piece on the pending cell confirms
+        // the place; clicking it on any other cell (shouldn't happen since the
+        // ghost only renders on pending or hovered cells) selects.
+        const ghostClick = (e: React.SyntheticEvent) => {
+          e.stopPropagation();
+          if (!canPlace) return;
           if (isPending) onConfirmPlace();
           else onSelectCell(idx);
         };
+
         return (
           <group key={idx} position={[x, 0, z]}>
             <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
               <planeGeometry args={[cellSize, cellSize]} />
               <meshStandardMaterial
-                color={isOnWinLine ? c.winLine : isPending ? c.pendingCell : c.surfaceMuted}
-                roughness={0.7}
+                color={
+                  isOnWinLine
+                    ? c.winLine
+                    : isPending
+                      ? c.pendingCell
+                      : isHovered && canPlace && !filled
+                        ? c.selection
+                        : c.surfaceMuted
+                }
+                roughness={0.9}
+                metalness={0}
+                envMapIntensity={0.2}
                 emissive={isOnWinLine ? c.winLineEmissive : '#000'}
                 emissiveIntensity={isOnWinLine ? 0.25 : 0}
               />
@@ -74,8 +115,8 @@ export function BoardGrid({
             {!filled && canPlace && (
               <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, 0.4, 0]}
-                onClick={handleClick}
+                position={[0, 0.01, 0]}
+                onClick={tileClick}
                 onPointerOver={(e) => {
                   e.stopPropagation();
                   setHoveredCell(idx);
@@ -90,10 +131,20 @@ export function BoardGrid({
               </mesh>
             )}
             {filled && <PieceMesh piece={piece} highlight={isOnWinLine} />}
-            {showGhost && <PieceMesh piece={ghostPiece} ghost selected={isPending} />}
+            {showGhost && (
+              <>
+                <PieceMesh piece={ghostPiece} ghost />
+                {canPlace && (
+                  <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.5, 0]} onClick={ghostClick}>
+                    <planeGeometry args={[cellSize * 0.9, cellSize * 0.9]} />
+                    <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                  </mesh>
+                )}
+              </>
+            )}
             {isPending && (
               <Html
-                position={[0, 0.02, cellPitch * 0.55]}
+                position={[0, BUTTON_BASE_OFFSET, 0]}
                 center
                 distanceFactor={6}
                 style={{ pointerEvents: 'auto' }}
@@ -101,7 +152,7 @@ export function BoardGrid({
                 <button
                   type="button"
                   onClick={onConfirmPlace}
-                  className="rounded-lg bg-[var(--color-ink)] px-6 py-3 text-base font-semibold text-white shadow-lg hover:opacity-90"
+                  className="rounded-lg border border-white/40 bg-[var(--color-slate)] px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-[var(--color-slate)]/85"
                 >
                   Place
                 </button>

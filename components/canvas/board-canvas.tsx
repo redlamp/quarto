@@ -29,7 +29,7 @@ interface BoardCanvasProps {
 }
 
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
-  const { lightingPreset } = useTheme();
+  const { lightingPreset, theme } = useTheme();
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -49,8 +49,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
     <Canvas
       camera={{ position: [-1.2, 7.5, 7.8], fov: 42 }}
       shadows
-      onCreated={({ camera }) => {
+      onCreated={({ camera, scene }) => {
         camera.lookAt(-1.0, 0, 0);
+        // Globally dim HDRI image-based lighting — studio preset has bright
+        // hot-spots that read as glare on flat surfaces otherwise.
+        scene.environmentIntensity = 0.35;
       }}
     >
       <Suspense fallback={null}>
@@ -61,6 +64,16 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           castShadow
         />
         {lightingPreset.environment && <Environment preset={lightingPreset.environment} />}
+        {/* Ground plane — satin grey backdrop under board + rack + pedestals */}
+        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+          <planeGeometry args={[24, 24]} />
+          <meshStandardMaterial
+            color={theme.colors.groundSurface}
+            roughness={0.85}
+            metalness={0}
+            envMapIntensity={0.2}
+          />
+        </mesh>
         <BoardGrid
           cells={board}
           pendingPlace={pendingPlace}
@@ -69,6 +82,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           canPlace={canPlace}
           onSelectCell={moves.selectCell}
           onConfirmPlace={moves.confirmPlace}
+          onClearPendingPlace={moves.clearPendingPlace}
         />
         <PieceRack
           available={available}

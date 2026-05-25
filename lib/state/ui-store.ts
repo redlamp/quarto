@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type OpponentMode = 'hot-seat' | 'ai-random';
+export type UiTheme = 'light' | 'dark';
 
 interface UiState {
   drawerOpen: boolean;
@@ -27,6 +28,10 @@ interface UiState {
 
   confirmEnabled: boolean;
   setConfirmEnabled: (on: boolean) => void;
+
+  uiTheme: UiTheme;
+  setUiTheme: (t: UiTheme) => void;
+  toggleUiTheme: () => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -54,6 +59,10 @@ export const useUiStore = create<UiState>()(
 
       confirmEnabled: true,
       setConfirmEnabled: (on) => set({ confirmEnabled: on }),
+
+      uiTheme: 'light',
+      setUiTheme: (t) => set({ uiTheme: t }),
+      toggleUiTheme: () => set((s) => ({ uiTheme: s.uiTheme === 'light' ? 'dark' : 'light' })),
     }),
     {
       name: 'quarto-settings',
@@ -65,6 +74,7 @@ export const useUiStore = create<UiState>()(
         motionPresetName: s.motionPresetName,
         soundEnabled: s.soundEnabled,
         confirmEnabled: s.confirmEnabled,
+        uiTheme: s.uiTheme,
       }),
     },
   ),

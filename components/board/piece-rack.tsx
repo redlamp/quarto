@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Html } from '@react-three/drei';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
@@ -19,6 +20,9 @@ const COLS = 4;
 const PITCH = 0.7;
 const X_OFFSET = -3.6;
 const RAISE_Y = 0.6;
+// Distance from piece base to Html button anchor — same constant used by the
+// place flow so Give + Place buttons sit at the same offset from each piece.
+const BUTTON_BASE_OFFSET = 0.5;
 
 function slotPosition(piece: Piece): [number, number, number] {
   const row = Math.floor(piece / COLS);
@@ -35,21 +39,26 @@ export function PieceRack({
   onConfirmHandoff,
 }: PieceRackProps) {
   const { theme } = useTheme();
+  const [hoveredSlot, setHoveredSlot] = useState<Piece | null>(null);
   return (
     <group position={[X_OFFSET, 0, 0]}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
         <planeGeometry args={[PITCH * COLS + 0.4, PITCH * ROWS + 0.4]} />
-        <meshStandardMaterial color={theme.colors.rackSurface} roughness={0.6} metalness={0.04} />
+        <meshStandardMaterial
+          color={theme.colors.rackSurface}
+          roughness={0.9}
+          metalness={0}
+          envMapIntensity={0.2}
+        />
       </mesh>
       {ALL_PIECES.map((piece) => {
         const [x, , z] = slotPosition(piece);
         const isAvailable = available.includes(piece);
         const isPendingHandoff = pendingHandoff === piece;
+        const isHovered = hoveredSlot === piece && canPick;
         const showPiece = isAvailable || isPendingHandoff;
         const pieceY = isPendingHandoff ? RAISE_Y : 0;
 
-        // Slot click target (base level). Click here on a selected slot lowers
-        // the raised piece (cancel). Click on an empty/unselected slot selects it.
         const slotClick = (e: React.SyntheticEvent) => {
           e.stopPropagation();
           if (!canPick) return;
@@ -57,9 +66,6 @@ export function PieceRack({
           else if (showPiece) onSelectPiece(piece);
         };
 
-        // Piece click target (follows piece, including raised height). Click on
-        // the raised selected piece confirms the give. Click on a non-selected
-        // piece selects it.
         const pieceClick = (e: React.SyntheticEvent) => {
           e.stopPropagation();
           if (!canPick) return;
@@ -67,18 +73,34 @@ export function PieceRack({
           else onSelectPiece(piece);
         };
 
+        const slotColor =
+          isHovered && !isPendingHandoff ? theme.colors.selection : theme.colors.surfaceMuted;
+
         return (
           <group key={piece} position={[x, 0, z]}>
             <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
               <planeGeometry args={[PITCH * 0.85, PITCH * 0.85]} />
               <meshStandardMaterial
-                color={theme.colors.surfaceMuted}
-                roughness={0.7}
-                metalness={0.04}
+                color={slotColor}
+                roughness={0.9}
+                metalness={0}
+                envMapIntensity={0.2}
               />
             </mesh>
             {canPick && (
-              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} onClick={slotClick}>
+              <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0.01, 0]}
+                onClick={slotClick}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setHoveredSlot(piece);
+                }}
+                onPointerOut={(e) => {
+                  e.stopPropagation();
+                  setHoveredSlot((current) => (current === piece ? null : current));
+                }}
+              >
                 <planeGeometry args={[PITCH * 0.85, PITCH * 0.85]} />
                 <meshBasicMaterial transparent opacity={0} depthWrite={false} />
               </mesh>
@@ -87,7 +109,19 @@ export function PieceRack({
               <group position={[0, pieceY, 0]}>
                 <PieceMesh piece={piece} selected={isPendingHandoff} />
                 {canPick && (
-                  <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.5, 0]} onClick={pieceClick}>
+                  <mesh
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    position={[0, 0.5, 0]}
+                    onClick={pieceClick}
+                    onPointerOver={(e) => {
+                      e.stopPropagation();
+                      setHoveredSlot(piece);
+                    }}
+                    onPointerOut={(e) => {
+                      e.stopPropagation();
+                      setHoveredSlot((current) => (current === piece ? null : current));
+                    }}
+                  >
                     <planeGeometry args={[PITCH * 0.9, PITCH * 0.9]} />
                     <meshBasicMaterial transparent opacity={0} depthWrite={false} />
                   </mesh>
@@ -96,7 +130,7 @@ export function PieceRack({
             )}
             {isPendingHandoff && (
               <Html
-                position={[0, 0.02, PITCH * 0.55]}
+                position={[0, pieceY + BUTTON_BASE_OFFSET, 0]}
                 center
                 distanceFactor={6}
                 style={{ pointerEvents: 'auto' }}
@@ -104,7 +138,7 @@ export function PieceRack({
                 <button
                   type="button"
                   onClick={onConfirmHandoff}
-                  className="rounded-lg bg-[var(--color-ink)] px-6 py-3 text-base font-semibold text-white shadow-lg hover:opacity-90"
+                  className="rounded-lg border border-white/40 bg-[var(--color-slate)] px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-[var(--color-slate)]/85"
                 >
                   Give
                 </button>

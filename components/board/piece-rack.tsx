@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
+import { useTheme } from '@/lib/theme/context';
 import type { Piece } from '@/lib/game/pieces';
 
 export interface PieceRackProps {
@@ -15,7 +16,7 @@ const ROWS = 2;
 const COLS = 8;
 const PITCH_X = 0.7;
 const PITCH_Z = 0.85;
-const X_OFFSET = 3.5; // distance from board center
+const Z_OFFSET = 3.5;
 
 function slotPosition(slot: number): [number, number, number] {
   const row = Math.floor(slot / COLS);
@@ -24,13 +25,13 @@ function slotPosition(slot: number): [number, number, number] {
 }
 
 export function PieceRack({ available, pendingHandoff, canPick, onSelectPiece }: PieceRackProps) {
+  const { theme } = useTheme();
   const slots = useMemo(() => available.slice(), [available]);
   return (
-    <group position={[0, 0, X_OFFSET]}>
-      {/* Rack surface */}
+    <group position={[0, 0, Z_OFFSET]}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
         <planeGeometry args={[PITCH_X * COLS + 0.4, PITCH_Z * ROWS + 0.4]} />
-        <meshStandardMaterial color="#e5e8ec" roughness={0.6} metalness={0.04} />
+        <meshStandardMaterial color={theme.colors.rackSurface} roughness={0.6} metalness={0.04} />
       </mesh>
       {slots.map((piece, slot) => {
         const [x, , z] = slotPosition(slot);

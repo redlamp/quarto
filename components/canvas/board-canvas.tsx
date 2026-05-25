@@ -6,6 +6,7 @@ import { Suspense, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { findWin } from '@/lib/game/win';
+import { useTheme } from '@/lib/theme/context';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -23,6 +24,7 @@ interface BoardCanvasProps {
 }
 
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
+  const { lightingPreset } = useTheme();
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -40,9 +42,13 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   return (
     <Canvas camera={{ position: [0, 6.5, 6], fov: 38 }} shadows>
       <Suspense fallback={null}>
-        <ambientLight intensity={0.45} />
-        <directionalLight position={[4, 8, 4]} intensity={1.1} castShadow />
-        <Environment preset="studio" />
+        <ambientLight intensity={lightingPreset.ambient} />
+        <directionalLight
+          position={lightingPreset.directionalPosition}
+          intensity={lightingPreset.directional}
+          castShadow
+        />
+        {lightingPreset.environment && <Environment preset={lightingPreset.environment} />}
         <BoardGrid
           cells={board}
           pendingPlace={pendingPlace}

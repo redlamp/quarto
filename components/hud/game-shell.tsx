@@ -1,11 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useEffect, useRef } from 'react';
 import { TopBar } from './top-bar';
 import { BottomHud } from './bottom-hud';
 import { SettingsDrawer } from './settings-drawer';
 import { WinBanner } from './win-banner';
 import { useQuartoClient } from '@/hooks/use-quarto-client';
+import { useAiOpponent } from '@/hooks/use-ai-opponent';
+import { useUiStore } from '@/lib/state/ui-store';
 
 const BoardCanvas = dynamic(
   () => import('@/components/canvas/board-canvas').then((m) => m.BoardCanvas),
@@ -14,6 +17,22 @@ const BoardCanvas = dynamic(
 
 export function GameShell() {
   const { state, moves, restart } = useQuartoClient();
+  const opponent = useUiStore((s) => s.opponent);
+  const lastOpponent = useRef(opponent);
+
+  // Restart game when opponent mode swaps (avoids mid-game incoherence).
+  useEffect(() => {
+    if (lastOpponent.current !== opponent) {
+      lastOpponent.current = opponent;
+      restart();
+    }
+  }, [opponent, restart]);
+
+  useAiOpponent({
+    state,
+    moves,
+    enabled: opponent === 'ai-random',
+  });
 
   return (
     <main className="relative flex h-screen w-screen flex-col overflow-hidden">

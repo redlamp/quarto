@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
+import { useTheme } from '@/lib/theme/context';
 import type { Cell } from '@/lib/game/win';
 
 export interface BoardGridProps {
@@ -13,13 +14,10 @@ export interface BoardGridProps {
   onSelectCell: (cell: number) => void;
 }
 
-const CELL_PITCH = 0.85;
-const CELL_SIZE = 0.78;
-
-function cellPosition(idx: number): [number, number, number] {
+function cellPosition(idx: number, pitch: number): [number, number, number] {
   const row = Math.floor(idx / 4);
   const col = idx % 4;
-  return [(col - 1.5) * CELL_PITCH, 0, (row - 1.5) * CELL_PITCH];
+  return [(col - 1.5) * pitch, 0, (row - 1.5) * pitch];
 }
 
 export function BoardGrid({
@@ -30,34 +28,34 @@ export function BoardGrid({
   canPlace,
   onSelectCell,
 }: BoardGridProps) {
+  const { theme } = useTheme();
+  const { cellPitch, cellSize } = theme.piece;
+  const c = theme.colors;
   const indices = useMemo(() => Array.from({ length: 16 }, (_, i) => i), []);
   return (
     <group>
-      {/* Board surface */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[CELL_PITCH * 4 + 0.4, CELL_PITCH * 4 + 0.4]} />
-        <meshStandardMaterial color="#eef0f3" roughness={0.55} metalness={0.04} />
+        <planeGeometry args={[cellPitch * 4 + 0.4, cellPitch * 4 + 0.4]} />
+        <meshStandardMaterial color={c.boardSurface} roughness={0.55} metalness={0.04} />
       </mesh>
 
       {indices.map((idx) => {
         const piece = cells[idx];
         const isPending = pendingPlace === idx;
         const isOnWinLine = winLine?.includes(idx) ?? false;
-        const [x, , z] = cellPosition(idx);
+        const [x, , z] = cellPosition(idx, cellPitch);
         const filled = piece !== null && piece !== undefined;
         return (
           <group key={idx} position={[x, 0, z]}>
-            {/* Cell inset visual */}
             <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
-              <planeGeometry args={[CELL_SIZE, CELL_SIZE]} />
+              <planeGeometry args={[cellSize, cellSize]} />
               <meshStandardMaterial
-                color={isOnWinLine ? '#f7e9c8' : isPending ? '#dfe7f5' : '#e2e5ea'}
+                color={isOnWinLine ? c.winLine : isPending ? c.pendingCell : c.surfaceMuted}
                 roughness={0.7}
-                emissive={isOnWinLine ? '#c9a866' : '#000'}
+                emissive={isOnWinLine ? c.winLineEmissive : '#000'}
                 emissiveIntensity={isOnWinLine ? 0.25 : 0}
               />
             </mesh>
-            {/* Click target — only when empty and place allowed */}
             {!filled && canPlace && (
               <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
@@ -67,13 +65,11 @@ export function BoardGrid({
                   onSelectCell(idx);
                 }}
               >
-                <planeGeometry args={[CELL_SIZE, CELL_SIZE]} />
+                <planeGeometry args={[cellSize, cellSize]} />
                 <meshBasicMaterial transparent opacity={0} depthWrite={false} />
               </mesh>
             )}
-            {/* Placed piece */}
             {filled && <PieceMesh piece={piece} highlight={isOnWinLine} />}
-            {/* Ghost preview on pending-place cell */}
             {!filled && isPending && ghostPiece !== null && <PieceMesh piece={ghostPiece} ghost />}
           </group>
         );

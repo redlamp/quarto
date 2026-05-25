@@ -25,7 +25,7 @@ export interface QuartoClient {
 }
 
 function createClient(): ClientType {
-  const c = Client({ game: Quarto, numPlayers: 2 });
+  const c = Client({ game: Quarto, numPlayers: 2, debug: false });
   c.start();
   return c;
 }

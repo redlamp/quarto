@@ -1,9 +1,14 @@
 'use client';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { useUiStore } from '@/lib/state/ui-store';
 
-export function SettingsDrawer() {
+interface SettingsDrawerProps {
+  onRestart: () => void;
+}
+
+export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const isOpen = useUiStore((s) => s.drawerOpen);
   const setOpen = useUiStore((s) => s.setDrawer);
   return (
@@ -13,15 +18,25 @@ export function SettingsDrawer() {
           <SheetTitle>Settings</SheetTitle>
         </SheetHeader>
         <div className="text-slate mt-4 flex flex-col gap-3 text-sm">
-          <p>Opponent picker — TODO</p>
-          <p>Camera mode — TODO</p>
-          <p>Lighting preset — TODO</p>
-          <p>Motion preset — TODO</p>
-          <p>Theme picker (dev-flagged) — TODO</p>
-          <p>Sound mute — TODO</p>
-          <p>Clock preset — TODO</p>
+          <p>Opponent picker — TODO (M2)</p>
+          <p>Camera mode — TODO (M3)</p>
+          <p>Lighting preset — TODO (M2)</p>
+          <p>Motion preset — TODO (M3)</p>
+          <p>Theme picker (dev-flagged) — TODO (M2)</p>
+          <p>Sound mute — TODO (M3)</p>
+          <p>Clock preset — TODO (M3)</p>
           <p>Confirm step toggle — TODO</p>
-          <p>Reset / Restart — TODO</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (window.confirm('Restart the game?')) {
+                onRestart();
+                setOpen(false);
+              }
+            }}
+          >
+            Restart game
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

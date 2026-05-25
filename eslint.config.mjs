@@ -1,0 +1,22 @@
+import next from 'eslint-config-next';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
+
+const config = [
+  ...next,
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  {
+    ignores: [
+      '.next/**',
+      '.remember/**',
+      'node_modules/**',
+      'out/**',
+      'dist/**',
+      'coverage/**',
+      'playwright-report/**',
+    ],
+  },
+];
+
+export default config;

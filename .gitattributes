@@ -1,0 +1,7 @@
+* text=auto eol=lf
+.husky/* text eol=lf
+*.png binary
+*.jpg binary
+*.gltf binary
+*.glb binary
+*.hdr binary

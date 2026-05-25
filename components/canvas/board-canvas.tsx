@@ -1,10 +1,11 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
+import { Environment, OrbitControls } from '@react-three/drei';
 import { Suspense, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
+import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
 import { findWin } from '@/lib/game/win';
 import { useTheme } from '@/lib/theme/context';
 import type { QuartoState } from '@/lib/game/definition';
@@ -20,6 +21,10 @@ interface BoardCanvasProps {
   moves: {
     selectCell: (cell: number) => void;
     selectHandoff: (piece: Piece) => void;
+    confirmPlace: () => void;
+    clearPendingPlace: () => void;
+    confirmHandoff: () => void;
+    clearPendingHandoff: () => void;
   };
 }
 
@@ -30,6 +35,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const pendingPlace = state?.G.pendingPlace ?? null;
   const pendingHandoff = state?.G.pendingHandoff ?? null;
   const handedPiece = state?.G.handedPiece ?? null;
+  const handedOwner = handedPiece !== null ? (state?.ctx.currentPlayer ?? null) : null;
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const canPlace = stage === 'place' && handedPiece !== null;
   const canPick = stage === 'pick';
@@ -40,7 +46,13 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   }, [board, winner]);
 
   return (
-    <Canvas camera={{ position: [0, 6.5, 6], fov: 38 }} shadows>
+    <Canvas
+      camera={{ position: [-1.2, 7.5, 7.8], fov: 42 }}
+      shadows
+      onCreated={({ camera }) => {
+        camera.lookAt(-1.0, 0, 0);
+      }}
+    >
       <Suspense fallback={null}>
         <ambientLight intensity={lightingPreset.ambient} />
         <directionalLight
@@ -56,12 +68,26 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           winLine={winLine}
           canPlace={canPlace}
           onSelectCell={moves.selectCell}
+          onConfirmPlace={moves.confirmPlace}
         />
         <PieceRack
           available={available}
           pendingHandoff={pendingHandoff}
           canPick={canPick}
           onSelectPiece={moves.selectHandoff}
+          onConfirmHandoff={moves.confirmHandoff}
+          onClearPendingHandoff={moves.clearPendingHandoff}
+        />
+        <HandedPiecePedestal piece={handedPiece} ownerPlayerID={handedOwner} />
+        <OrbitControls
+          makeDefault
+          target={[-1.0, 0, 0]}
+          enablePan={false}
+          enableZoom
+          minDistance={6}
+          maxDistance={14}
+          minPolarAngle={Math.PI / 6}
+          maxPolarAngle={Math.PI / 2.2}
         />
       </Suspense>
     </Canvas>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Outlines } from '@react-three/drei';
 import { traits, type Piece } from '@/lib/game/pieces';
 import { useTheme } from '@/lib/theme/context';
 
@@ -11,12 +12,16 @@ interface PieceMeshProps {
   onPointerOut?: (e: React.PointerEvent) => void;
   ghost?: boolean;
   highlight?: boolean;
+  selected?: boolean;
 }
+
+const OUTLINE_THICKNESS = 0.05;
 
 export function PieceMesh({
   piece,
   ghost = false,
   highlight = false,
+  selected = false,
   ...handlers
 }: PieceMeshProps) {
   const { theme } = useTheme();
@@ -43,6 +48,7 @@ export function PieceMesh({
             transparent={transparent}
             opacity={opacity}
           />
+          {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
         </mesh>
       ) : (
         <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
@@ -56,6 +62,7 @@ export function PieceMesh({
             transparent={transparent}
             opacity={opacity}
           />
+          {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
         </mesh>
       )}
       {t.hollow && (

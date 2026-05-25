@@ -48,7 +48,7 @@ Atomic decision notes for the Quarto project. Each note captures one decision: c
 
 ## Deferred
 
--
+- [[backlog-drag-to-confirm]] — drag piece to board cell / pedestal = confirms. Attempted M3, deferred.
 
 ## Superseded
 

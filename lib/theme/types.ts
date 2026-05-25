@@ -12,6 +12,7 @@ export interface ThemeColors {
   pieceDark: string;
   pieceHollowInset: string;
   accent: string;
+  selection: string;
   winLine: string;
   winLineEmissive: string;
   pendingCell: string;

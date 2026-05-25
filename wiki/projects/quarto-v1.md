@@ -2,7 +2,7 @@
 tags:
   - domain/architecture
   - status/open
-  - scope/m0
+  - scope/m3
   - origin/grill-2026-05-25
 ---
 
@@ -14,27 +14,45 @@ Single source of truth for scope: `docs/PRD.md`.
 
 ## Current state
 
-**Phase:** pre-scaffold. Grilling complete (2026-05-25). PRD locked. Decision notes written. Ready for M0.
+**Phase:** M3 interaction polish in progress. Hot-seat + AI/Random playable end-to-end with orbit camera, click-toggle selection, orange selection outlines, contextual confirm buttons.
 
 ## Milestones
 
-| ID | Name | State |
-|---|---|---|
-| M0 | Scaffold | next |
-| M1 | Core game (hot-seat) | not started |
-| M2 | AI bot (random) + Theme layer | not started |
-| M3 | Polish + menu loop + clocks + sound + win-sequence polish | not started |
-| M4 | 2D fallback view + mobile | not started |
-| M5 | Backlog: heuristic/minimax AI tiers, online multiplayer, stats, sound theming, physics, 3D UI | not started |
+| ID  | Name                                                                                          | State                   |
+| --- | --------------------------------------------------------------------------------------------- | ----------------------- |
+| M0  | Scaffold                                                                                      | done (commit `ab98887`) |
+| M1  | Core game (hot-seat)                                                                          | done (commit `3885ef7`) |
+| M2  | AI bot (random) + Theme layer                                                                 | done (commit `3b918fc`) |
+| M3  | Polish + menu loop + clocks + sound + win-sequence polish                                     | in progress             |
+| M4  | 2D fallback view + mobile                                                                     | not started             |
+| M5  | Backlog: heuristic/minimax AI tiers, online multiplayer, stats, sound theming, physics, 3D UI | not started             |
 
-## M0 exit criteria
+## Dev environment
 
-- `bun dev` boots `/` showing R3F canvas + HUD shell + settings drawer.
-- `/playground` route stubbed (theme tester scaffold).
-- ESLint + Prettier + Husky + lint-staged wired (Windows worktree fixes applied).
-- Vitest + Playwright configs in place (no tests yet).
-- TypeScript strict, no JS in source.
-- Local commit only. No CI, no remote, no Vercel.
+- `bun run dev` boots on **localhost:3003** (other local projects use 3000).
+- `bun run test:run` / `bunx playwright test` / `bun run lint` / `bun run typecheck` — all green at last commit.
+
+## M3 progress so far
+
+- Visual contrast pass — board surface darkened, cool-neutral slate palette, pieces read clearly against board.
+- Rack layout — 4×4 grid of fixed slots indexed by piece bitmask. Slot stays in place when a piece leaves the pool.
+- Handed-piece pedestal — when a piece is given, it shows on the recipient's side of the board (P0 front, P1 back).
+- Orbit camera — drei `OrbitControls` with polar/zoom limits.
+- Selection outline — drei `Outlines` in theme `colors.selection` (orange v1, theme-overridable).
+- Click-toggle selection model:
+  - Pick: click piece raises; click another switches; click slot below lowers; click raised piece confirms; large `Give` button below piece confirms too.
+  - Place: click cell ghosts piece; click another switches; click selected cell confirms; large `Place` button below cell confirms too.
+
+## M3 still open
+
+- [[backlog-drag-to-confirm]] — drag-and-drop confirm gesture (attempted, not working, deferred).
+- GSAP animations (lift/drop/hand-off travel/win-line reveal/camera cinematics).
+- Lighting + motion preset pickers in settings drawer.
+- Sound (WebAudio synth + named SFX events).
+- Clock UI + toggle.
+- Menu loop + game-over screen polish.
+- Default camera mode out of the four toggleable modes.
+- Bright-color accent vs tonal accent for generic theme.
 
 ## Decisions log
 
@@ -62,13 +80,7 @@ See [[decisions]] for the full Map of Content. Key atomic notes from the 2026-05
 - [[decision-generic-theme-baseline]]
 - [[decision-license-mit]]
 
-## Open items
-
-For v1 commit:
-
-- None foundational. All major design + architecture branches resolved.
-
-For the next session:
+## Open items for next session
 
 - Default camera mode out of the four toggleable modes.
 - Bright-color accent vs strictly tonal accent in the generic theme.

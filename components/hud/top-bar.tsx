@@ -30,8 +30,11 @@ export function TopBar({ state }: TopBarProps) {
   const openDrawer = useUiStore((s) => s.openDrawer);
   return (
     <header className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-6 py-4">
-      <div className="font-mono text-sm tracking-tight">Quarto</div>
-      <div aria-live="polite" className="text-slate text-sm">
+      <div className="font-mono text-sm tracking-tight text-[var(--color-ink)]">Quarto</div>
+      <div
+        aria-live="polite"
+        className="rounded-full bg-[var(--color-surface)]/40 px-4 py-1.5 text-sm text-[var(--color-ink)] backdrop-blur-md"
+      >
         {turnLabel(state)}
       </div>
       <Button variant="ghost" size="icon" aria-label="Open settings" onClick={openDrawer}>

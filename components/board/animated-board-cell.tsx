@@ -8,7 +8,6 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
-import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
@@ -17,54 +16,44 @@ const CASCADE_STAGGER_S = 0.18;
 
 interface AnimatedBoardCellProps {
   position: [number, number, number];
+  cellPitch: number;
   cellSize: number;
   piece: Piece | null;
-  ghostPiece: Piece | null;
   isPending: boolean;
+  isHovered: boolean;
   isOnWinLine: boolean;
-  winLineCascadeIndex: number; // -1 if not on win line
+  winLineCascadeIndex: number;
   winDecided: boolean;
-  ghostAllowed: boolean;
   canPlace: boolean;
-  hasPendingPlace: boolean;
-  onSelectCell: () => void;
+  onHoverIn: () => void;
+  onHoverOut: () => void;
+  onClick: () => void;
   onConfirmPlace: () => void;
-  onClearPendingPlace: () => void;
 }
 
 export function AnimatedBoardCell({
   position,
+  cellPitch,
   cellSize,
   piece,
-  ghostPiece,
   isPending,
+  isHovered,
   isOnWinLine,
   winLineCascadeIndex,
   winDecided,
-  ghostAllowed,
   canPlace,
-  hasPendingPlace,
-  onSelectCell,
+  onHoverIn,
+  onHoverOut,
+  onClick,
   onConfirmPlace,
-  onClearPendingPlace,
 }: AnimatedBoardCellProps) {
   const { theme } = useTheme();
   const motion = useMotion();
-  const playSfx = useSfx();
-  const [hovered, setHovered] = useState(false);
   const pieceGroupRef = useRef<Group>(null);
   const prevFilled = useRef(piece !== null);
   const filled = piece !== null;
   const c = theme.colors;
 
-  const showGhost =
-    !filled &&
-    ghostPiece !== null &&
-    canPlace &&
-    (isPending || (!hasPendingPlace && hovered && ghostAllowed));
-
-  // Drop animation when a piece newly lands on this cell. Position-only —
-  // scaling the y axis distorts piece silhouette (tall reads as short briefly).
   useGSAP(
     () => {
       if (filled && !prevFilled.current && pieceGroupRef.current) {
@@ -80,8 +69,6 @@ export function AnimatedBoardCell({
     { dependencies: [filled, motion.base, motion.reduced] },
   );
 
-  // Cascade highlight: stagger which winning piece is glowing.
-  // Driven via a state flag set inside a timeline.
   const [cascadeOn, setCascadeOn] = useState(false);
   useGSAP(
     () => {
@@ -96,33 +83,20 @@ export function AnimatedBoardCell({
     { dependencies: [isOnWinLine, winLineCascadeIndex, motion.reduced] },
   );
 
-  const tileClick = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    if (!canPlace) return;
-    if (isPending) onClearPendingPlace();
-    else {
-      playSfx('piece-pick');
-      onSelectCell();
-    }
-  };
-
-  const ghostClick = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    if (!canPlace) return;
-    if (isPending) onConfirmPlace();
-    else {
-      playSfx('piece-pick');
-      onSelectCell();
-    }
-  };
-
   const tileColor = isOnWinLine
     ? c.winLine
     : isPending
       ? c.pendingCell
-      : hovered && canPlace && !filled
+      : isHovered && canPlace && !filled
         ? c.selection
         : c.surfaceMuted;
+
+  const handleClick = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+    if (!canPlace || filled) return;
+    if (isPending) onConfirmPlace();
+    else onClick();
+  };
 
   return (
     <group position={position}>
@@ -137,21 +111,23 @@ export function AnimatedBoardCell({
           emissiveIntensity={isOnWinLine ? 0.25 : 0}
         />
       </mesh>
+      {/* Pitch-sized hit mesh so adjacent cells touch — kills the pointer
+          hiccup that happens when crossing the gap between visible tiles. */}
       {!filled && canPlace && (
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}
-          onClick={tileClick}
+          onClick={handleClick}
           onPointerOver={(e) => {
             e.stopPropagation();
-            setHovered(true);
+            onHoverIn();
           }}
           onPointerOut={(e) => {
             e.stopPropagation();
-            setHovered(false);
+            onHoverOut();
           }}
         >
-          <planeGeometry args={[cellSize, cellSize]} />
+          <planeGeometry args={[cellPitch, cellPitch]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
@@ -159,17 +135,6 @@ export function AnimatedBoardCell({
         <group ref={pieceGroupRef}>
           <PieceMesh piece={piece} highlight={cascadeOn} dimmed={winDecided && !isOnWinLine} />
         </group>
-      )}
-      {showGhost && ghostPiece !== null && (
-        <>
-          <PieceMesh piece={ghostPiece} ghost />
-          {canPlace && (
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.5, 0]} onClick={ghostClick}>
-              <planeGeometry args={[cellSize * 0.9, cellSize * 0.9]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
-          )}
-        </>
       )}
       {isPending && (
         <Html

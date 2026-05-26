@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { AnimatedBoardCell } from './animated-board-cell';
+import { PlacementGhost } from './placement-ghost';
 import { WinLineOverlay } from './win-line-overlay';
 import { useTheme } from '@/lib/theme/context';
 import type { Cell } from '@/lib/game/win';
@@ -31,7 +32,6 @@ export function BoardGrid({
   canPlace,
   onSelectCell,
   onConfirmPlace,
-  onClearPendingPlace,
 }: BoardGridProps) {
   const { theme } = useTheme();
   const { cellPitch, cellSize } = theme.piece;
@@ -39,7 +39,17 @@ export function BoardGrid({
   const indices = useMemo(() => Array.from({ length: 16 }, (_, i) => i), []);
   const winCells = useMemo(() => winLine ?? [], [winLine]);
   const winSet = useMemo(() => new Set(winCells), [winCells]);
-  const hasPendingPlace = pendingPlace !== null;
+  const [hoveredCell, setHoveredCell] = useState<number | null>(null);
+
+  // Shared placement ghost target: pending takes priority, then hovered.
+  const ghostTarget =
+    canPlace && ghostPiece !== null
+      ? pendingPlace !== null
+        ? pendingPlace
+        : hoveredCell !== null && (cells[hoveredCell] ?? null) === null
+          ? hoveredCell
+          : null
+      : null;
 
   return (
     <group>
@@ -61,22 +71,26 @@ export function BoardGrid({
           <AnimatedBoardCell
             key={idx}
             position={cellPosition(idx, cellPitch)}
+            cellPitch={cellPitch}
             cellSize={cellSize}
             piece={piece}
-            ghostPiece={ghostPiece}
             isPending={pendingPlace === idx}
+            isHovered={hoveredCell === idx}
             isOnWinLine={isOnWinLine}
             winLineCascadeIndex={cascadeIdx}
             winDecided={winCells.length > 0}
-            ghostAllowed={!hasPendingPlace}
             canPlace={canPlace}
-            hasPendingPlace={hasPendingPlace}
-            onSelectCell={() => onSelectCell(idx)}
+            onHoverIn={() => setHoveredCell(idx)}
+            onHoverOut={() => setHoveredCell((curr) => (curr === idx ? null : curr))}
+            onClick={() => onSelectCell(idx)}
             onConfirmPlace={onConfirmPlace}
-            onClearPendingPlace={onClearPendingPlace}
           />
         );
       })}
+
+      {ghostTarget !== null && ghostPiece !== null && (
+        <PlacementGhost targetIdx={ghostTarget} cellPitch={cellPitch} piece={ghostPiece} />
+      )}
 
       {winLine && winLine.length === 4 && <WinLineOverlay cells={winLine} cellPitch={cellPitch} />}
     </group>

@@ -2,15 +2,12 @@
 
 import { Canvas } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
-import { Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
-import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
+import { PlayerPedestal } from '@/components/board/player-pedestal';
 import { CameraRig, CAMERA_PRESETS } from './camera-rig';
-import { DragController } from './drag-controller';
-import { DragGhost } from './drag-ghost';
 import { useTheme } from '@/lib/theme/context';
-import { useDragStore } from '@/lib/state/drag-store';
 import { useUiStore } from '@/lib/state/ui-store';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
@@ -38,46 +35,30 @@ interface BoardCanvasProps {
 
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
-  const dragActive = useDragStore((s) => s.active);
   const cameraMode = useUiStore((s) => s.cameraMode);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
   const pendingHandoff = state?.G.pendingHandoff ?? null;
   const handedPiece = state?.G.handedPiece ?? null;
-  const handedOwner = handedPiece !== null ? (state?.ctx.currentPlayer ?? null) : null;
+  const currentPlayer = state?.ctx.currentPlayer ?? null;
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const canPlace = stage === 'place' && handedPiece !== null;
   const canPick = stage === 'pick';
-  const cellPitch = theme.piece.cellPitch;
+
+  // The receiver is the player who currently holds (or is about to hold) the
+  // handed piece. Pick stage → opponent is about to receive. Place stage →
+  // current player is the receiver.
+  const receiver: '0' | '1' | null = useMemo(() => {
+    if (!currentPlayer || !stage) return null;
+    if (stage === 'place') return currentPlayer as '0' | '1';
+    return currentPlayer === '0' ? '1' : '0';
+  }, [currentPlayer, stage]);
 
   const winner = state?.G.winner;
-  // Win-line reveal only fires once the win has been declared via "Quarto!" —
-  // unclaimed winning lines stay invisible per the missed-call rule.
   const winLine = useMemo(() => {
     return state?.ctx.gameover && winner ? winner.line : null;
   }, [state?.ctx.gameover, winner]);
-
-  const handleCommitPlace = useCallback(
-    (idx: number) => {
-      moves.selectCell(idx);
-      moves.confirmPlace();
-    },
-    [moves],
-  );
-  const handleCommitPickHandoff = useCallback(
-    (piece: Piece) => {
-      moves.selectHandoff(piece);
-      moves.confirmHandoff();
-    },
-    [moves],
-  );
-  const handleClickPick = useCallback(
-    (piece: Piece) => {
-      moves.selectHandoff(piece);
-    },
-    [moves],
-  );
 
   return (
     <Canvas
@@ -120,22 +101,23 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           available={available}
           pendingHandoff={pendingHandoff}
           canPick={canPick}
+          onSelectPiece={moves.selectHandoff}
           onConfirmHandoff={moves.confirmHandoff}
-          onClearPendingHandoff={moves.clearPendingHandoff}
         />
-        <HandedPiecePedestal piece={handedPiece} ownerPlayerID={handedOwner} draggable={canPlace} />
-        <DragGhost cellPitch={cellPitch} cells={board} />
-        <DragController
-          cellPitch={cellPitch}
-          cells={board}
-          onCommitPlace={handleCommitPlace}
-          onCommitPickHandoff={handleCommitPickHandoff}
-          onClickPick={handleClickPick}
+        <PlayerPedestal
+          playerID="0"
+          piece={currentPlayer === '0' && handedPiece !== null ? handedPiece : null}
+          highlighted={receiver === '0'}
+        />
+        <PlayerPedestal
+          playerID="1"
+          piece={currentPlayer === '1' && handedPiece !== null ? handedPiece : null}
+          highlighted={receiver === '1'}
         />
         <CameraRig mode={cameraMode} />
         <OrbitControls
           makeDefault
-          enabled={cameraMode === 'orbit' && !dragActive}
+          enabled={cameraMode === 'orbit'}
           target={CAMERA_PRESETS.orbit.target}
           enablePan={false}
           enableZoom

@@ -69,6 +69,12 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
     },
     [moves],
   );
+  const handleClickPick = useCallback(
+    (piece: Piece) => {
+      moves.selectHandoff(piece);
+    },
+    [moves],
+  );
 
   return (
     <Canvas
@@ -110,7 +116,6 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           available={available}
           pendingHandoff={pendingHandoff}
           canPick={canPick}
-          onSelectPiece={moves.selectHandoff}
           onConfirmHandoff={moves.confirmHandoff}
           onClearPendingHandoff={moves.clearPendingHandoff}
         />
@@ -121,6 +126,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           cells={board}
           onCommitPlace={handleCommitPlace}
           onCommitPickHandoff={handleCommitPickHandoff}
+          onClickPick={handleClickPick}
         />
         <OrbitControls
           makeDefault

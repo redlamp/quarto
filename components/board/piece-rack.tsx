@@ -8,7 +8,6 @@ export interface PieceRackProps {
   available: readonly Piece[];
   pendingHandoff: Piece | null;
   canPick: boolean;
-  onSelectPiece: (piece: Piece) => void;
   onClearPendingHandoff: () => void;
   onConfirmHandoff: () => void;
 }
@@ -44,7 +43,6 @@ export function PieceRack({
   available,
   pendingHandoff,
   canPick,
-  onSelectPiece,
   onClearPendingHandoff,
   onConfirmHandoff,
 }: PieceRackProps) {
@@ -77,7 +75,6 @@ export function PieceRack({
             isPendingHandoff={isPendingHandoff}
             canPick={canPick}
             sweepDelay={sweepDelay}
-            onSelectPiece={() => onSelectPiece(piece)}
             onClearPendingHandoff={onClearPendingHandoff}
             onConfirmHandoff={onConfirmHandoff}
           />

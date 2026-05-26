@@ -10,7 +10,6 @@ import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
 import { useDragStore } from '@/lib/state/drag-store';
 import { useHoverStore } from '@/lib/state/hover-store';
-import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
 const RAISE_Y = 0.6;
@@ -27,7 +26,6 @@ interface AnimatedRackSlotProps {
   isPendingHandoff: boolean;
   canPick: boolean;
   sweepDelay: number;
-  onSelectPiece: () => void;
   onClearPendingHandoff: () => void;
   onConfirmHandoff: () => void;
 }
@@ -42,13 +40,11 @@ export function AnimatedRackSlot({
   isPendingHandoff,
   canPick,
   sweepDelay,
-  onSelectPiece,
   onClearPendingHandoff,
   onConfirmHandoff,
 }: AnimatedRackSlotProps) {
   const { theme } = useTheme();
   const motion = useMotion();
-  const playSfx = useSfx();
   const setHover = useHoverStore((s) => s.set);
   const startDrag = useDragStore((s) => s.start);
   const dragActive = useDragStore((s) => s.active);
@@ -113,16 +109,6 @@ export function AnimatedRackSlot({
     setHover(null);
   };
 
-  const onPieceClick = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    if (!canPick || !renderPiece) return;
-    if (isPendingHandoff) onConfirmHandoff();
-    else {
-      playSfx('piece-pick');
-      onSelectPiece();
-    }
-  };
-
   const onSlotClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (!canPick) return;
@@ -132,7 +118,12 @@ export function AnimatedRackSlot({
   const onPiecePointerDown = (e: React.PointerEvent) => {
     if (!canPick || !renderPiece) return;
     e.stopPropagation();
-    startDrag(piece, 'pick', { x: worldPosition[0], z: worldPosition[2] });
+    startDrag(
+      piece,
+      'pick',
+      { x: worldPosition[0], z: worldPosition[2] },
+      { x: e.clientX, y: e.clientY },
+    );
   };
 
   const slotColor =
@@ -169,7 +160,6 @@ export function AnimatedRackSlot({
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0.5, 0]}
               onPointerDown={onPiecePointerDown}
-              onClick={onPieceClick}
               onPointerOver={onHoverIn}
               onPointerOut={onHoverOut}
             >

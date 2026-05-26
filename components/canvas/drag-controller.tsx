@@ -12,9 +12,12 @@ interface DragControllerProps {
   cells: readonly (Piece | null)[];
   onCommitPlace: (idx: number) => void;
   onCommitPickHandoff: (piece: Piece) => void;
+  onClickPick: (piece: Piece) => void;
 }
 
 const GROUND_PLANE = new Plane(new Vector3(0, 1, 0), 0);
+const CLICK_MAX_MS = 400;
+const CLICK_MAX_PX = 8;
 
 function isOverBoardCell(x: number, z: number, pitch: number): number | null {
   const col = Math.round(x / pitch + 1.5);
@@ -40,6 +43,7 @@ export function DragController({
   cells,
   onCommitPlace,
   onCommitPickHandoff,
+  onClickPick,
 }: DragControllerProps) {
   const { camera, gl } = useThree();
   const dragActive = useDragStore((s) => s.active);
@@ -71,17 +75,33 @@ export function DragController({
     };
 
     const onUp = (e: PointerEvent) => {
-      const cursor = project(e);
-      const { piece, kind, hasMoved } = useDragStore.getState();
+      const { piece, kind, hasMoved, pressAt, pressScreen } = useDragStore.getState();
 
-      if (cursor && piece !== null) {
-        if (kind === 'place') {
-          const cellIdx = isOverBoardCell(cursor.x, cursor.z, cellPitch);
-          if (cellIdx !== null && cells[cellIdx] === null) {
-            onCommitPlace(cellIdx);
+      // Click detection: short press + minimal screen movement.
+      let isClick = false;
+      if (pressScreen && pressAt > 0) {
+        const dt = Date.now() - pressAt;
+        const dx = e.clientX - pressScreen.x;
+        const dy = e.clientY - pressScreen.y;
+        const px2 = dx * dx + dy * dy;
+        isClick = dt < CLICK_MAX_MS && px2 < CLICK_MAX_PX * CLICK_MAX_PX;
+      }
+
+      const cursor = project(e);
+
+      if (piece !== null) {
+        if (isClick) {
+          if (kind === 'pick') onClickPick(piece);
+          // place kind: clicking the pedestal piece has no UI target — no-op.
+        } else if (cursor) {
+          if (kind === 'place') {
+            const cellIdx = isOverBoardCell(cursor.x, cursor.z, cellPitch);
+            if (cellIdx !== null && cells[cellIdx] === null) {
+              onCommitPlace(cellIdx);
+            }
+          } else if (kind === 'pick' && hasMoved && isOutsideRack(cursor)) {
+            onCommitPickHandoff(piece);
           }
-        } else if (kind === 'pick' && hasMoved && isOutsideRack(cursor)) {
-          onCommitPickHandoff(piece);
         }
       }
       endDrag();
@@ -105,6 +125,7 @@ export function DragController({
     cells,
     onCommitPlace,
     onCommitPickHandoff,
+    onClickPick,
   ]);
 
   return null;

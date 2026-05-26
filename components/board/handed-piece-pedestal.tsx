@@ -60,7 +60,7 @@ export function HandedPiecePedestal({ piece, ownerPlayerID, draggable }: HandedP
           }}
           onPointerDown={(e) => {
             e.stopPropagation();
-            startDrag(piece, 'place', { x: 0, z });
+            startDrag(piece, 'place', { x: 0, z }, { x: e.clientX, y: e.clientY });
           }}
         >
           <cylinderGeometry args={[0.45, 0.45, 0.9, 16]} />

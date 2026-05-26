@@ -14,7 +14,6 @@ import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
 const DROP_FROM_Y = 0.9;
-const DROP_SQUASH_Y = 0.7;
 const CASCADE_STAGGER_S = 0.18;
 
 interface AnimatedBoardCellProps {
@@ -67,7 +66,8 @@ export function AnimatedBoardCell({
     canPlace &&
     (isPending || (!hasPendingPlace && hovered && ghostAllowed));
 
-  // Drop animation when a piece newly lands on this cell.
+  // Drop animation when a piece newly lands on this cell. Position-only —
+  // scaling the y axis distorts piece silhouette (tall reads as short briefly).
   useGSAP(
     () => {
       if (filled && !prevFilled.current && pieceGroupRef.current) {
@@ -77,20 +77,6 @@ export function AnimatedBoardCell({
           { y: motion.reduced ? 0 : DROP_FROM_Y },
           { y: 0, duration: motion.base, ease: 'power2.in' },
         );
-        if (!motion.reduced) {
-          gsap.fromTo(
-            g.scale,
-            { x: 1, y: DROP_SQUASH_Y, z: 1 },
-            {
-              x: 1,
-              y: 1,
-              z: 1,
-              duration: motion.base,
-              delay: motion.base * 0.9,
-              ease: 'elastic.out(1, 0.45)',
-            },
-          );
-        }
       }
       prevFilled.current = filled;
     },

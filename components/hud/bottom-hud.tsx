@@ -64,7 +64,9 @@ export function BottomHud({ state, moves }: BottomHudProps) {
           <Button variant="outline" onClick={moves.clearPendingPlace}>
             Cancel
           </Button>
-          <Button onClick={moves.confirmPlace}>Confirm place</Button>
+          <Button onClick={moves.confirmPlace} className="confirm-pulse">
+            Confirm place
+          </Button>
         </>
       )}
       {canConfirmHandoff && (
@@ -72,7 +74,9 @@ export function BottomHud({ state, moves }: BottomHudProps) {
           <Button variant="outline" onClick={moves.clearPendingHandoff}>
             Cancel
           </Button>
-          <Button onClick={moves.confirmHandoff}>Confirm pass</Button>
+          <Button onClick={moves.confirmHandoff} className="confirm-pulse">
+            Confirm pass
+          </Button>
         </>
       )}
 

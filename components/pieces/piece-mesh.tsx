@@ -14,6 +14,7 @@ interface PieceMeshProps {
   ghost?: boolean;
   highlight?: boolean;
   selected?: boolean;
+  dimmed?: boolean;
 }
 
 const OUTLINE_THICKNESS = 0.05;
@@ -47,6 +48,7 @@ export function PieceMesh({
   ghost = false,
   highlight = false,
   selected = false,
+  dimmed = false,
   ...handlers
 }: PieceMeshProps) {
   const { theme } = useTheme();
@@ -56,8 +58,8 @@ export function PieceMesh({
   const height = t.tall ? p.heightTall : p.heightShort;
   const color = t.dark ? c.pieceDark : c.pieceLight;
   const emissive = highlight ? c.winLine : '#000000';
-  const opacity = ghost ? 0.8 : 1;
-  const transparent = ghost;
+  const opacity = ghost ? 0.8 : dimmed ? 0.35 : 1;
+  const transparent = ghost || dimmed;
 
   const cylinderProfile = useMemo(
     () => roundedCylinderProfile(p.radius, height, EDGE_RADIUS),

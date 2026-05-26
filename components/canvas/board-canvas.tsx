@@ -6,14 +6,17 @@ import { Suspense, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
-import { findWin } from '@/lib/game/win';
 import { useTheme } from '@/lib/theme/context';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
 interface ClientLike {
   G: QuartoState;
-  ctx: { activePlayers?: Record<string, string> | null; currentPlayer: string };
+  ctx: {
+    activePlayers?: Record<string, string> | null;
+    currentPlayer: string;
+    gameover?: unknown;
+  };
 }
 
 interface BoardCanvasProps {
@@ -41,9 +44,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const canPick = stage === 'pick';
 
   const winner = state?.G.winner;
+  // Win-line reveal only fires once the win has been declared via "Quarto!" —
+  // unclaimed winning lines stay invisible per the missed-call rule.
   const winLine = useMemo(() => {
-    return winner?.line ?? findWin(board)?.cells ?? null;
-  }, [board, winner]);
+    return state?.ctx.gameover && winner ? winner.line : null;
+  }, [state?.ctx.gameover, winner]);
 
   return (
     <Canvas

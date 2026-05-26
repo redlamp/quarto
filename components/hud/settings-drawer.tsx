@@ -20,6 +20,8 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setOpponent = useUiStore((s) => s.setOpponent);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
   const setConfirmEnabled = useUiStore((s) => s.setConfirmEnabled);
+  const soundEnabled = useUiStore((s) => s.soundEnabled);
+  const setSoundEnabled = useUiStore((s) => s.setSoundEnabled);
   const uiTheme = useUiStore((s) => s.uiTheme);
   const setUiTheme = useUiStore((s) => s.setUiTheme);
 
@@ -81,7 +83,12 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
           <section className="flex flex-col gap-2">
             <h3 className="text-xs tracking-wider text-slate-500 uppercase">Audio</h3>
-            <p className="text-slate text-xs">Sound — wired in M3.</p>
+            <Button
+              variant={soundEnabled ? 'default' : 'outline'}
+              onClick={() => setSoundEnabled(!soundEnabled)}
+            >
+              Sound: {soundEnabled ? 'on' : 'off'}
+            </Button>
           </section>
 
           <Button

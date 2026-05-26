@@ -8,6 +8,7 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
+import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
@@ -50,6 +51,7 @@ export function AnimatedBoardCell({
 }: AnimatedBoardCellProps) {
   const { theme } = useTheme();
   const motion = useMotion();
+  const playSfx = useSfx();
   const [hovered, setHovered] = useState(false);
   const pieceGroupRef = useRef<Group>(null);
   const prevFilled = useRef(piece !== null);
@@ -112,14 +114,20 @@ export function AnimatedBoardCell({
     e.stopPropagation();
     if (!canPlace) return;
     if (isPending) onClearPendingPlace();
-    else onSelectCell();
+    else {
+      playSfx('piece-pick');
+      onSelectCell();
+    }
   };
 
   const ghostClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (!canPlace) return;
     if (isPending) onConfirmPlace();
-    else onSelectCell();
+    else {
+      playSfx('piece-pick');
+      onSelectCell();
+    }
   };
 
   const tileColor = isOnWinLine

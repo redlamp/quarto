@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { findWin } from '@/lib/game/win';
 import { describe } from '@/lib/game/pieces';
+import { useSfx } from '@/hooks/use-sfx';
 import type { QuartoState } from '@/lib/game/definition';
 
 interface BottomHudProps {
@@ -25,6 +26,7 @@ interface BottomHudProps {
 }
 
 export function BottomHud({ state, moves }: BottomHudProps) {
+  const playSfx = useSfx();
   const G = state?.G;
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const winAvailable = useMemo(() => (G ? findWin(G.board) !== null : false), [G]);
@@ -83,7 +85,10 @@ export function BottomHud({ state, moves }: BottomHudProps) {
       <Button
         variant={canCallQuarto ? 'default' : 'outline'}
         disabled={!canCallQuarto}
-        onClick={moves.callQuarto}
+        onClick={() => {
+          playSfx('quarto-call');
+          moves.callQuarto();
+        }}
         className={canCallQuarto ? 'animate-pulse' : ''}
       >
         Quarto!

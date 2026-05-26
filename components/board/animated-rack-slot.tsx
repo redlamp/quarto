@@ -8,6 +8,7 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
+import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
 const RAISE_Y = 0.6;
@@ -43,6 +44,7 @@ export function AnimatedRackSlot({
 }: AnimatedRackSlotProps) {
   const { theme } = useTheme();
   const motion = useMotion();
+  const playSfx = useSfx();
   const groupRef = useRef<Group>(null);
   const prevShowPiece = useRef(false);
   const [hovered, setHovered] = useState(false);
@@ -97,14 +99,20 @@ export function AnimatedRackSlot({
     e.stopPropagation();
     if (!canPick) return;
     if (isPendingHandoff) onClearPendingHandoff();
-    else if (showPiece) onSelectPiece();
+    else if (showPiece) {
+      playSfx('piece-pick');
+      onSelectPiece();
+    }
   };
 
   const pieceClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (!canPick) return;
     if (isPendingHandoff) onConfirmHandoff();
-    else onSelectPiece();
+    else {
+      playSfx('piece-pick');
+      onSelectPiece();
+    }
   };
 
   const onPointerOver = (e: React.PointerEvent) => {

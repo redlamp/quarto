@@ -9,6 +9,7 @@ import { WinBanner } from './win-banner';
 import { UiThemeSync } from './ui-theme-sync';
 import { useQuartoClient } from '@/hooks/use-quarto-client';
 import { useAiOpponent } from '@/hooks/use-ai-opponent';
+import { useSfxBus } from '@/hooks/use-sfx-bus';
 import { useUiStore } from '@/lib/state/ui-store';
 
 const BoardCanvas = dynamic(
@@ -34,6 +35,8 @@ export function GameShell() {
     moves,
     enabled: opponent === 'ai-random',
   });
+
+  useSfxBus(state);
 
   return (
     <main className="relative flex h-screen w-screen flex-col overflow-hidden">

@@ -12,6 +12,9 @@ Thumbs.db
 out/
 build/
 dist/
+# next dev regenerates next-env.d.ts on every boot with quote style that
+# fights project Prettier — file is generated; do not track.
+next-env.d.ts
 
 # Env
 .env

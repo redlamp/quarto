@@ -13,7 +13,6 @@ interface PieceMeshProps {
   onPointerOut?: (e: React.PointerEvent) => void;
   onClick?: (e: React.PointerEvent) => void;
   ghost?: boolean;
-  highlight?: boolean;
   selected?: boolean;
   dimmed?: boolean;
   // When false, the mesh geometry is excluded from raycasting so it can't
@@ -53,7 +52,6 @@ function roundedCylinderProfile(radius: number, height: number, fillet: number):
 export function PieceMesh({
   piece,
   ghost = false,
-  highlight = false,
   selected = false,
   dimmed = false,
   interactive = true,
@@ -66,7 +64,6 @@ export function PieceMesh({
   const c = theme.colors;
   const height = t.tall ? p.heightTall : p.heightShort;
   const color = t.dark ? c.pieceDark : c.pieceLight;
-  const emissive = highlight ? c.winLine : '#000000';
   const opacity = ghost ? 0.8 : dimmed ? 0.35 : 1;
   const transparent = ghost || dimmed;
 
@@ -78,8 +75,6 @@ export function PieceMesh({
   const renderClayMaterial = () => (
     <meshStandardMaterial
       color={color}
-      emissive={emissive}
-      emissiveIntensity={highlight ? p.highlightEmissive : 0}
       roughness={p.roughness}
       metalness={p.metalness}
       envMapIntensity={CLAY_ENV_INTENSITY}

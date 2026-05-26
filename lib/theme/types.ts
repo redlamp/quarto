@@ -27,7 +27,6 @@ export interface PiecePresentation {
   heightShort: number;
   roughness: number;
   metalness: number;
-  highlightEmissive: number;
   hollowDepth: number;
 }
 

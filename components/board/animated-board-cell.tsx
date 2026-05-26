@@ -1,16 +1,11 @@
 'use client';
 
-import { useGSAP } from '@gsap/react';
-import { useState } from 'react';
 import { Html } from '@react-three/drei';
-import gsap from 'gsap';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
-import { useMotion } from '@/lib/motion/use-motion';
 import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
-const CASCADE_STAGGER_S = 0.18;
 
 interface AnimatedBoardCellProps {
   position: [number, number, number];
@@ -20,7 +15,6 @@ interface AnimatedBoardCellProps {
   isPending: boolean;
   isHovered: boolean;
   isOnWinLine: boolean;
-  winLineCascadeIndex: number;
   winDecided: boolean;
   canPlace: boolean;
   suppressPiece: boolean;
@@ -38,7 +32,6 @@ export function AnimatedBoardCell({
   isPending,
   isHovered,
   isOnWinLine,
-  winLineCascadeIndex,
   winDecided,
   canPlace,
   suppressPiece,
@@ -48,27 +41,12 @@ export function AnimatedBoardCell({
   onConfirmPlace,
 }: AnimatedBoardCellProps) {
   const { theme } = useTheme();
-  const motion = useMotion();
   const filled = piece !== null;
   const c = theme.colors;
 
   // The arriving piece is animated by PlacementFlight (pedestal → cell arc);
   // the cell shows its resting piece only once that flight has landed.
   const showPiece = filled && !suppressPiece;
-
-  const [cascadeOn, setCascadeOn] = useState(false);
-  useGSAP(
-    () => {
-      if (isOnWinLine && winLineCascadeIndex >= 0) {
-        const delay = motion.reduced ? 0 : winLineCascadeIndex * CASCADE_STAGGER_S;
-        const tw = gsap.delayedCall(delay, () => setCascadeOn(true));
-        return () => tw.kill();
-      } else {
-        setCascadeOn(false);
-      }
-    },
-    { dependencies: [isOnWinLine, winLineCascadeIndex, motion.reduced] },
-  );
 
   const tileColor = isOnWinLine
     ? c.winLine
@@ -119,7 +97,7 @@ export function AnimatedBoardCell({
         </mesh>
       )}
       {showPiece && piece !== null && (
-        <PieceMesh piece={piece} highlight={cascadeOn} dimmed={winDecided && !isOnWinLine} />
+        <PieceMesh piece={piece} dimmed={winDecided && !isOnWinLine} />
       )}
       {isPending && (
         <Html

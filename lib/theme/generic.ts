@@ -32,7 +32,6 @@ export const generic: Theme = {
     heightShort: 0.4,
     roughness: 0.95,
     metalness: 0,
-    highlightEmissive: 0.3,
     hollowDepth: 0.06,
   },
   lighting: {

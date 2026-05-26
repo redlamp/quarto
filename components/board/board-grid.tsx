@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatedBoardCell } from './animated-board-cell';
 import { PlacementGhost } from './placement-ghost';
-import { WinLineOverlay } from './win-line-overlay';
 import { useTheme } from '@/lib/theme/context';
 import { useFlightStore } from '@/lib/state/flight-store';
 import type { Cell } from '@/lib/game/win';
@@ -68,7 +67,6 @@ export function BoardGrid({
       {indices.map((idx) => {
         const piece = cells[idx] ?? null;
         const isOnWinLine = winSet.has(idx);
-        const cascadeIdx = isOnWinLine ? winCells.indexOf(idx) : -1;
         return (
           <AnimatedBoardCell
             key={idx}
@@ -79,7 +77,6 @@ export function BoardGrid({
             isPending={pendingPlace === idx}
             isHovered={hoveredCell === idx}
             isOnWinLine={isOnWinLine}
-            winLineCascadeIndex={cascadeIdx}
             winDecided={winCells.length > 0}
             canPlace={canPlace}
             suppressPiece={flyingCell === idx}
@@ -94,8 +91,6 @@ export function BoardGrid({
       {ghostTarget !== null && ghostPiece !== null && (
         <PlacementGhost targetIdx={ghostTarget} cellPitch={cellPitch} piece={ghostPiece} />
       )}
-
-      {winLine && winLine.length === 4 && <WinLineOverlay cells={winLine} cellPitch={cellPitch} />}
     </group>
   );
 }

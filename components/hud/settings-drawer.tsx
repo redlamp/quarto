@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
-import { useUiStore, type OpponentMode } from '@/lib/state/ui-store';
+import { useUiStore, type CameraMode, type OpponentMode } from '@/lib/state/ui-store';
 
 interface SettingsDrawerProps {
   onRestart: () => void;
@@ -13,6 +13,13 @@ interface SettingsDrawerProps {
 const OPPONENT_OPTIONS: Array<{ value: OpponentMode; label: string }> = [
   { value: 'hot-seat', label: 'Hot-seat' },
   { value: 'ai-random', label: 'AI — Random' },
+];
+
+const CAMERA_OPTIONS: Array<{ value: CameraMode; label: string }> = [
+  { value: 'top-down', label: 'Top-down' },
+  { value: 'iso', label: 'Isometric' },
+  { value: 'orbit', label: 'Free orbit' },
+  { value: 'parallax', label: 'Parallax' },
 ];
 
 export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
@@ -35,6 +42,8 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
   const clockPresetName = useUiStore((s) => s.clockPresetName);
   const setClockPresetName = useUiStore((s) => s.setClockPresetName);
+  const cameraMode = useUiStore((s) => s.cameraMode);
+  const setCameraMode = useUiStore((s) => s.setCameraMode);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -84,6 +93,21 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               >
                 Dark
               </Button>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Camera</h3>
+            <div className="flex flex-wrap gap-2">
+              {CAMERA_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant={cameraMode === opt.value ? 'default' : 'outline'}
+                  onClick={() => setCameraMode(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
             </div>
           </section>
 

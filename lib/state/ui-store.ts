@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type OpponentMode = 'hot-seat' | 'ai-random';
 export type UiTheme = 'light' | 'dark';
+export type CameraMode = 'top-down' | 'iso' | 'orbit' | 'parallax';
 
 interface UiState {
   drawerOpen: boolean;
@@ -31,6 +32,9 @@ interface UiState {
 
   clockPresetName: string;
   setClockPresetName: (name: string) => void;
+
+  cameraMode: CameraMode;
+  setCameraMode: (mode: CameraMode) => void;
 
   uiTheme: UiTheme;
   setUiTheme: (t: UiTheme) => void;
@@ -66,6 +70,9 @@ export const useUiStore = create<UiState>()(
       clockPresetName: 'untimed',
       setClockPresetName: (name) => set({ clockPresetName: name }),
 
+      cameraMode: 'orbit',
+      setCameraMode: (mode) => set({ cameraMode: mode }),
+
       uiTheme: 'light',
       setUiTheme: (t) => set({ uiTheme: t }),
       toggleUiTheme: () => set((s) => ({ uiTheme: s.uiTheme === 'light' ? 'dark' : 'light' })),
@@ -81,6 +88,7 @@ export const useUiStore = create<UiState>()(
         soundEnabled: s.soundEnabled,
         confirmEnabled: s.confirmEnabled,
         clockPresetName: s.clockPresetName,
+        cameraMode: s.cameraMode,
         uiTheme: s.uiTheme,
       }),
     },

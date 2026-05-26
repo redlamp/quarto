@@ -6,10 +6,12 @@ import { Suspense, useCallback, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
+import { CameraRig, CAMERA_PRESETS } from './camera-rig';
 import { DragController } from './drag-controller';
 import { DragGhost } from './drag-ghost';
 import { useTheme } from '@/lib/theme/context';
 import { useDragStore } from '@/lib/state/drag-store';
+import { useUiStore } from '@/lib/state/ui-store';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -37,6 +39,7 @@ interface BoardCanvasProps {
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
   const dragActive = useDragStore((s) => s.active);
+  const cameraMode = useUiStore((s) => s.cameraMode);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -78,10 +81,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
 
   return (
     <Canvas
-      camera={{ position: [-1.2, 7.5, 7.8], fov: 42 }}
+      camera={{ position: CAMERA_PRESETS.orbit.position, fov: 42 }}
       shadows
       onCreated={({ camera, scene }) => {
-        camera.lookAt(-1.0, 0, 0);
+        const t = CAMERA_PRESETS[cameraMode].target;
+        camera.lookAt(t[0], t[1], t[2]);
         scene.environmentIntensity = 0.35;
       }}
     >
@@ -128,10 +132,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           onCommitPickHandoff={handleCommitPickHandoff}
           onClickPick={handleClickPick}
         />
+        <CameraRig mode={cameraMode} />
         <OrbitControls
           makeDefault
-          enabled={!dragActive}
-          target={[-1.0, 0, 0]}
+          enabled={cameraMode === 'orbit' && !dragActive}
+          target={CAMERA_PRESETS.orbit.target}
           enablePan={false}
           enableZoom
           minDistance={6}

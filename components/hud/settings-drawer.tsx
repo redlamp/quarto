@@ -3,6 +3,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme/context';
+import { CLOCK_PRESETS } from '@/lib/clock/math';
 import { useUiStore, type OpponentMode } from '@/lib/state/ui-store';
 
 interface SettingsDrawerProps {
@@ -31,6 +32,9 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setMotionPresetName = useUiStore((s) => s.setMotionPresetName);
   const lightingPresets = Object.values(theme.lighting);
   const motionPresets = Object.values(theme.motion);
+
+  const clockPresetName = useUiStore((s) => s.clockPresetName);
+  const setClockPresetName = useUiStore((s) => s.setClockPresetName);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -106,6 +110,21 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
                   key={preset.name}
                   variant={motionPreset.name === preset.name ? 'default' : 'outline'}
                   onClick={() => setMotionPresetName(preset.name)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Clock</h3>
+            <div className="flex flex-wrap gap-2">
+              {CLOCK_PRESETS.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant={clockPresetName === preset.name ? 'default' : 'outline'}
+                  onClick={() => setClockPresetName(preset.name)}
                 >
                   {preset.label}
                 </Button>

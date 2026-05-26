@@ -29,6 +29,9 @@ interface UiState {
   confirmEnabled: boolean;
   setConfirmEnabled: (on: boolean) => void;
 
+  clockPresetName: string;
+  setClockPresetName: (name: string) => void;
+
   uiTheme: UiTheme;
   setUiTheme: (t: UiTheme) => void;
   toggleUiTheme: () => void;
@@ -60,6 +63,9 @@ export const useUiStore = create<UiState>()(
       confirmEnabled: true,
       setConfirmEnabled: (on) => set({ confirmEnabled: on }),
 
+      clockPresetName: 'untimed',
+      setClockPresetName: (name) => set({ clockPresetName: name }),
+
       uiTheme: 'light',
       setUiTheme: (t) => set({ uiTheme: t }),
       toggleUiTheme: () => set((s) => ({ uiTheme: s.uiTheme === 'light' ? 'dark' : 'light' })),
@@ -74,6 +80,7 @@ export const useUiStore = create<UiState>()(
         motionPresetName: s.motionPresetName,
         soundEnabled: s.soundEnabled,
         confirmEnabled: s.confirmEnabled,
+        clockPresetName: s.clockPresetName,
         uiTheme: s.uiTheme,
       }),
     },

@@ -6,6 +6,7 @@ import { Suspense, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { PlayerPedestal } from '@/components/board/player-pedestal';
+import { HandoffFlight } from '@/components/board/handoff-flight';
 import { CameraRig, CAMERA_PRESETS } from './camera-rig';
 import { useTheme } from '@/lib/theme/context';
 import { useUiStore } from '@/lib/state/ui-store';
@@ -114,6 +115,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           piece={currentPlayer === '1' && handedPiece !== null ? handedPiece : null}
           highlighted={receiver === '1'}
         />
+        <HandoffFlight handedPiece={handedPiece} receiver={receiver} />
         <CameraRig mode={cameraMode} />
         <OrbitControls
           makeDefault

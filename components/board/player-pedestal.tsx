@@ -2,6 +2,7 @@
 
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
+import { useFlightStore } from '@/lib/state/flight-store';
 import type { Piece } from '@/lib/game/pieces';
 
 interface PlayerPedestalProps {
@@ -17,7 +18,11 @@ const HIGHLIGHT_INSET = 0.08;
 
 export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalProps) {
   const { theme } = useTheme();
+  const flyingReceiver = useFlightStore((s) => s.flyingReceiver);
   const z = Z_BY_PLAYER[playerID];
+  // Hide the resting piece while the arcing handoff piece is in flight to this
+  // pedestal — avoids a duplicate sitting at the destination mid-animation.
+  const showPiece = piece !== null && flyingReceiver !== playerID;
   const baseColor = theme.colors.rackSurface;
   const highlightColor = theme.colors.selection;
 
@@ -45,7 +50,7 @@ export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalP
           envMapIntensity={0.2}
         />
       </mesh>
-      {piece !== null && <PieceMesh piece={piece} />}
+      {showPiece && <PieceMesh piece={piece} />}
     </group>
   );
 }

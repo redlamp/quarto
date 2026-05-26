@@ -24,6 +24,12 @@ function slotPosition(piece: Piece): [number, number, number] {
   return [(col - (COLS - 1) / 2) * PITCH, 0, (row - (ROWS - 1) / 2) * PITCH];
 }
 
+// World-space position of a piece's rack slot (rack group is offset on X).
+export function rackSlotWorld(piece: Piece): [number, number, number] {
+  const [x, y, z] = slotPosition(piece);
+  return [x + X_OFFSET, y, z];
+}
+
 export function PieceRack({
   available,
   pendingHandoff,

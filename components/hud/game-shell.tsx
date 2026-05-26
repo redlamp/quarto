@@ -13,6 +13,7 @@ import { useAiOpponent } from '@/hooks/use-ai-opponent';
 import { useClock } from '@/hooks/use-clock';
 import { useSfxBus } from '@/hooks/use-sfx-bus';
 import { useUiStore } from '@/lib/state/ui-store';
+import { useHoverStore } from '@/lib/state/hover-store';
 
 const BoardCanvas = dynamic(
   () => import('@/components/canvas/board-canvas').then((m) => m.BoardCanvas),
@@ -41,6 +42,15 @@ export function GameShell() {
   useSfxBus(state);
   const clock = useClock(state);
   const clockOn = clock.mode === 'live';
+
+  // Clear any stale hover highlight when the turn or stage shifts, so a piece
+  // left "hovered" in a prior round doesn't reappear lit on re-entry.
+  const clearHover = useHoverStore((s) => s.set);
+  const currentPlayer = state?.ctx.currentPlayer ?? null;
+  const stage = state ? (state.ctx.activePlayers?.[state.ctx.currentPlayer] ?? null) : null;
+  useEffect(() => {
+    clearHover(null);
+  }, [currentPlayer, stage, clearHover]);
 
   return (
     <main className="relative flex h-screen w-screen flex-col overflow-hidden">

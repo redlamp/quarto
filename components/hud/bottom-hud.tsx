@@ -86,17 +86,22 @@ export function BottomHud({ state, moves }: BottomHudProps) {
         </>
       )}
 
-      <Button
-        variant={canCallQuarto ? 'default' : 'outline'}
-        disabled={!canCallQuarto}
-        onClick={() => {
-          playSfx('quarto-call');
-          moves.callQuarto();
-        }}
-        className={canCallQuarto ? 'animate-pulse' : ''}
-      >
-        Quarto!
-      </Button>
+      {canCallQuarto ? (
+        <button
+          type="button"
+          onClick={() => {
+            playSfx('quarto-call');
+            moves.callQuarto();
+          }}
+          className="quarto-glow rounded-xl border-2 border-white/60 bg-[#c9a866] px-10 py-5 text-xl font-bold tracking-widest text-[#1e2128] uppercase shadow-2xl"
+        >
+          Quarto!
+        </button>
+      ) : (
+        <Button variant="outline" disabled>
+          Quarto!
+        </Button>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { PlayerPedestal } from '@/components/board/player-pedestal';
 import { HandoffFlight } from '@/components/board/handoff-flight';
+import { PlacementFlight } from '@/components/board/placement-flight';
 import { CameraRig, CAMERA_PRESETS } from './camera-rig';
 import { useTheme } from '@/lib/theme/context';
 import { useUiStore } from '@/lib/state/ui-store';
@@ -46,6 +47,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const canPlace = stage === 'place' && handedPiece !== null;
   const canPick = stage === 'pick';
+  const cellPitch = theme.piece.cellPitch;
 
   // The receiver is the player who currently holds (or is about to hold) the
   // handed piece. Pick stage → opponent is about to receive. Place stage →
@@ -116,6 +118,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           highlighted={receiver === '1'}
         />
         <HandoffFlight handedPiece={handedPiece} receiver={receiver} />
+        <PlacementFlight cells={board} currentPlayer={currentPlayer} cellPitch={cellPitch} />
         <CameraRig mode={cameraMode} />
         <OrbitControls
           makeDefault

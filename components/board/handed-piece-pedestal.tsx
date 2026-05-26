@@ -29,10 +29,12 @@ export function HandedPiecePedestal({ piece, ownerPlayerID, draggable }: HandedP
   const startDrag = useDragStore((s) => s.start);
   const dragActive = useDragStore((s) => s.active);
   const dragPiece = useDragStore((s) => s.piece);
+  const dragHasMoved = useDragStore((s) => s.hasMoved);
   const setHover = useHoverStore((s) => s.set);
   const visible = piece !== null && ownerPlayerID !== null;
   const z = zForOwner(ownerPlayerID);
-  const isBeingDragged = dragActive && piece !== null && dragPiece === piece;
+  // Source piece stays visible until cursor moves enough — quick taps shouldn't flicker.
+  const isBeingDragged = dragActive && piece !== null && dragPiece === piece && dragHasMoved;
 
   if (!visible) return null;
   return (

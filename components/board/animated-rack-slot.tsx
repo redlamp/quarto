@@ -1,7 +1,7 @@
 'use client';
 
 import { useGSAP } from '@gsap/react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Html } from '@react-three/drei';
 import gsap from 'gsap';
 import { Group } from 'three';
@@ -13,7 +13,6 @@ import { useHoverStore } from '@/lib/state/hover-store';
 import type { Piece } from '@/lib/game/pieces';
 
 const RAISE_Y = 0.6;
-const HOVER_LIFT_Y = 0.12;
 const BUTTON_BASE_OFFSET = 0.5;
 
 interface AnimatedRackSlotProps {
@@ -49,14 +48,16 @@ export function AnimatedRackSlot({
   const startDrag = useDragStore((s) => s.start);
   const dragActive = useDragStore((s) => s.active);
   const dragPiece = useDragStore((s) => s.piece);
+  const dragHasMoved = useDragStore((s) => s.hasMoved);
   const groupRef = useRef<Group>(null);
   const prevShowPiece = useRef(false);
-  const [hovered, setHovered] = useState(false);
 
   const isBeingDragged = dragActive && dragPiece === piece;
-  const renderPiece = showPiece && !isBeingDragged;
+  // Keep source piece visible during press; only hide once the cursor has
+  // moved enough to count as a real drag (DragGhost then takes over).
+  const renderPiece = showPiece && !(isBeingDragged && dragHasMoved);
 
-  const targetY = isPendingHandoff ? RAISE_Y : hovered && canPick && renderPiece ? HOVER_LIFT_Y : 0;
+  const targetY = isPendingHandoff ? RAISE_Y : 0;
 
   useGSAP(
     () => {
@@ -100,12 +101,10 @@ export function AnimatedRackSlot({
 
   const onHoverIn = (e: React.PointerEvent) => {
     e.stopPropagation();
-    setHovered(true);
     if (showPiece) setHover(piece);
   };
   const onHoverOut = (e: React.PointerEvent) => {
     e.stopPropagation();
-    setHovered(false);
     setHover(null);
   };
 
@@ -126,15 +125,12 @@ export function AnimatedRackSlot({
     );
   };
 
-  const slotColor =
-    hovered && canPick && !isPendingHandoff ? theme.colors.selection : theme.colors.surfaceMuted;
-
   return (
     <group position={position}>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <planeGeometry args={[slotSize, slotSize]} />
         <meshStandardMaterial
-          color={slotColor}
+          color={theme.colors.surfaceMuted}
           roughness={0.9}
           metalness={0}
           envMapIntensity={0.2}

@@ -8,6 +8,8 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
+import { useDragStore } from '@/lib/state/drag-store';
+import { useHoverStore } from '@/lib/state/hover-store';
 import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -18,6 +20,7 @@ const BUTTON_BASE_OFFSET = 0.5;
 interface AnimatedRackSlotProps {
   piece: Piece;
   position: [number, number, number];
+  worldPosition: [number, number, number];
   slotSize: number;
   pieceSize: number;
   showPiece: boolean;
@@ -32,6 +35,7 @@ interface AnimatedRackSlotProps {
 export function AnimatedRackSlot({
   piece,
   position,
+  worldPosition,
   slotSize,
   pieceSize,
   showPiece,
@@ -45,11 +49,18 @@ export function AnimatedRackSlot({
   const { theme } = useTheme();
   const motion = useMotion();
   const playSfx = useSfx();
+  const setHover = useHoverStore((s) => s.set);
+  const startDrag = useDragStore((s) => s.start);
+  const dragActive = useDragStore((s) => s.active);
+  const dragPiece = useDragStore((s) => s.piece);
   const groupRef = useRef<Group>(null);
   const prevShowPiece = useRef(false);
   const [hovered, setHovered] = useState(false);
 
-  const targetY = isPendingHandoff ? RAISE_Y : hovered && canPick && showPiece ? HOVER_LIFT_Y : 0;
+  const isBeingDragged = dragActive && dragPiece === piece;
+  const renderPiece = showPiece && !isBeingDragged;
+
+  const targetY = isPendingHandoff ? RAISE_Y : hovered && canPick && renderPiece ? HOVER_LIFT_Y : 0;
 
   useGSAP(
     () => {
@@ -64,7 +75,6 @@ export function AnimatedRackSlot({
     { dependencies: [targetY, motion.base, motion.ease] },
   );
 
-  // Sweep-in when the slot newly shows its piece (initial mount, restart).
   useGSAP(
     () => {
       if (!groupRef.current) return;
@@ -92,22 +102,20 @@ export function AnimatedRackSlot({
     { dependencies: [showPiece, sweepDelay, motion.base, motion.reduced] },
   );
 
-  const slotColor =
-    hovered && canPick && !isPendingHandoff ? theme.colors.selection : theme.colors.surfaceMuted;
-
-  const slotClick = (e: React.SyntheticEvent) => {
+  const onHoverIn = (e: React.PointerEvent) => {
     e.stopPropagation();
-    if (!canPick) return;
-    if (isPendingHandoff) onClearPendingHandoff();
-    else if (showPiece) {
-      playSfx('piece-pick');
-      onSelectPiece();
-    }
+    setHovered(true);
+    if (showPiece) setHover(piece);
+  };
+  const onHoverOut = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setHovered(false);
+    setHover(null);
   };
 
-  const pieceClick = (e: React.SyntheticEvent) => {
+  const onPieceClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    if (!canPick) return;
+    if (!canPick || !renderPiece) return;
     if (isPendingHandoff) onConfirmHandoff();
     else {
       playSfx('piece-pick');
@@ -115,14 +123,20 @@ export function AnimatedRackSlot({
     }
   };
 
-  const onPointerOver = (e: React.PointerEvent) => {
+  const onSlotClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    setHovered(true);
+    if (!canPick) return;
+    if (isPendingHandoff) onClearPendingHandoff();
   };
-  const onPointerOut = (e: React.PointerEvent) => {
+
+  const onPiecePointerDown = (e: React.PointerEvent) => {
+    if (!canPick || !renderPiece) return;
     e.stopPropagation();
-    setHovered(false);
+    startDrag(piece, 'pick', { x: worldPosition[0], z: worldPosition[2] });
   };
+
+  const slotColor =
+    hovered && canPick && !isPendingHandoff ? theme.colors.selection : theme.colors.surfaceMuted;
 
   return (
     <group position={position}>
@@ -139,24 +153,25 @@ export function AnimatedRackSlot({
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}
-          onClick={slotClick}
-          onPointerOver={onPointerOver}
-          onPointerOut={onPointerOut}
+          onClick={onSlotClick}
+          onPointerOver={onHoverIn}
+          onPointerOut={onHoverOut}
         >
           <planeGeometry args={[slotSize, slotSize]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
-      {showPiece && (
+      {renderPiece && (
         <group ref={groupRef}>
           <PieceMesh piece={piece} selected={isPendingHandoff} />
           {canPick && (
             <mesh
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0.5, 0]}
-              onClick={pieceClick}
-              onPointerOver={onPointerOver}
-              onPointerOut={onPointerOut}
+              onPointerDown={onPiecePointerDown}
+              onClick={onPieceClick}
+              onPointerOver={onHoverIn}
+              onPointerOut={onHoverOut}
             >
               <planeGeometry args={[pieceSize, pieceSize]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />

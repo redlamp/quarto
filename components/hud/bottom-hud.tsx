@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { findWin } from '@/lib/game/win';
 import { describe } from '@/lib/game/pieces';
 import { useSfx } from '@/hooks/use-sfx';
+import { useHoverStore } from '@/lib/state/hover-store';
 import type { QuartoState } from '@/lib/game/definition';
 
 interface BottomHudProps {
@@ -27,6 +28,7 @@ interface BottomHudProps {
 
 export function BottomHud({ state, moves }: BottomHudProps) {
   const playSfx = useSfx();
+  const hoveredPiece = useHoverStore((s) => s.piece);
   const G = state?.G;
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const winAvailable = useMemo(() => (G ? findWin(G.board) !== null : false), [G]);
@@ -44,7 +46,9 @@ export function BottomHud({ state, moves }: BottomHudProps) {
       ? describe(G.pendingHandoff)
       : null;
 
-  const activeLabel = stage === 'place' ? handedLabel : stage === 'pick' ? handoffLabel : null;
+  const hoverLabel = hoveredPiece !== null ? describe(hoveredPiece) : null;
+  const stageLabel = stage === 'place' ? handedLabel : stage === 'pick' ? handoffLabel : null;
+  const activeLabel = hoverLabel ?? stageLabel;
   const attrLines = activeLabel ? activeLabel.split(' ') : null;
 
   return (

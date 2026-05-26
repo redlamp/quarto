@@ -2,10 +2,12 @@
 
 import { Canvas } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
+import { DragController } from './drag-controller';
+import { DragGhost } from './drag-ghost';
 import { useTheme } from '@/lib/theme/context';
 import { useDragStore } from '@/lib/state/drag-store';
 import type { QuartoState } from '@/lib/game/definition';
@@ -35,21 +37,6 @@ interface BoardCanvasProps {
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
   const dragActive = useDragStore((s) => s.active);
-  const endDrag = useDragStore((s) => s.end);
-
-  // Drag is released on the next global pointer-up regardless of target. Cell
-  // pointer-up handlers commit the place; this fallback clears stale state
-  // when the drop lands outside any cell.
-  useEffect(() => {
-    if (!dragActive) return;
-    const onUp = () => endDrag();
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    return () => {
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-  }, [dragActive, endDrag]);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -59,6 +46,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const canPlace = stage === 'place' && handedPiece !== null;
   const canPick = stage === 'pick';
+  const cellPitch = theme.piece.cellPitch;
 
   const winner = state?.G.winner;
   // Win-line reveal only fires once the win has been declared via "Quarto!" —
@@ -67,14 +55,27 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
     return state?.ctx.gameover && winner ? winner.line : null;
   }, [state?.ctx.gameover, winner]);
 
+  const handleCommitPlace = useCallback(
+    (idx: number) => {
+      moves.selectCell(idx);
+      moves.confirmPlace();
+    },
+    [moves],
+  );
+  const handleCommitPickHandoff = useCallback(
+    (piece: Piece) => {
+      moves.selectHandoff(piece);
+      moves.confirmHandoff();
+    },
+    [moves],
+  );
+
   return (
     <Canvas
       camera={{ position: [-1.2, 7.5, 7.8], fov: 42 }}
       shadows
       onCreated={({ camera, scene }) => {
         camera.lookAt(-1.0, 0, 0);
-        // Globally dim HDRI image-based lighting — studio preset has bright
-        // hot-spots that read as glare on flat surfaces otherwise.
         scene.environmentIntensity = 0.35;
       }}
     >
@@ -86,7 +87,6 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           castShadow
         />
         {lightingPreset.environment && <Environment preset={lightingPreset.environment} />}
-        {/* Ground plane — satin grey backdrop under board + rack + pedestals */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
           <planeGeometry args={[24, 24]} />
           <meshStandardMaterial
@@ -115,6 +115,13 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           onClearPendingHandoff={moves.clearPendingHandoff}
         />
         <HandedPiecePedestal piece={handedPiece} ownerPlayerID={handedOwner} draggable={canPlace} />
+        <DragGhost cellPitch={cellPitch} cells={board} />
+        <DragController
+          cellPitch={cellPitch}
+          cells={board}
+          onCommitPlace={handleCommitPlace}
+          onCommitPickHandoff={handleCommitPickHandoff}
+        />
         <OrbitControls
           makeDefault
           enabled={!dragActive}

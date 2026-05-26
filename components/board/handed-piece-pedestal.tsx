@@ -3,6 +3,7 @@
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useDragStore } from '@/lib/state/drag-store';
+import { useHoverStore } from '@/lib/state/hover-store';
 import type { Piece } from '@/lib/game/pieces';
 
 interface HandedPiecePedestalProps {
@@ -26,8 +27,12 @@ function zForOwner(owner: string | null): number {
 export function HandedPiecePedestal({ piece, ownerPlayerID, draggable }: HandedPiecePedestalProps) {
   const { theme } = useTheme();
   const startDrag = useDragStore((s) => s.start);
+  const dragActive = useDragStore((s) => s.active);
+  const dragPiece = useDragStore((s) => s.piece);
+  const setHover = useHoverStore((s) => s.set);
   const visible = piece !== null && ownerPlayerID !== null;
   const z = zForOwner(ownerPlayerID);
+  const isBeingDragged = dragActive && piece !== null && dragPiece === piece;
 
   if (!visible) return null;
   return (
@@ -41,13 +46,21 @@ export function HandedPiecePedestal({ piece, ownerPlayerID, draggable }: HandedP
           envMapIntensity={0.2}
         />
       </mesh>
-      <PieceMesh piece={piece} />
+      {!isBeingDragged && <PieceMesh piece={piece} />}
       {draggable && (
         <mesh
           position={[0, 0.5, 0]}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            setHover(piece);
+          }}
+          onPointerOut={(e) => {
+            e.stopPropagation();
+            setHover(null);
+          }}
           onPointerDown={(e) => {
             e.stopPropagation();
-            startDrag();
+            startDrag(piece, 'place', { x: 0, z });
           }}
         >
           <cylinderGeometry args={[0.45, 0.45, 0.9, 16]} />

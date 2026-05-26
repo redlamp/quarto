@@ -8,7 +8,6 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
-import { useDragStore } from '@/lib/state/drag-store';
 import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -52,8 +51,6 @@ export function AnimatedBoardCell({
   const { theme } = useTheme();
   const motion = useMotion();
   const playSfx = useSfx();
-  const dragActive = useDragStore((s) => s.active);
-  const endDrag = useDragStore((s) => s.end);
   const [hovered, setHovered] = useState(false);
   const pieceGroupRef = useRef<Group>(null);
   const prevFilled = useRef(piece !== null);
@@ -152,13 +149,6 @@ export function AnimatedBoardCell({
           onPointerOut={(e) => {
             e.stopPropagation();
             setHovered(false);
-          }}
-          onPointerUp={(e) => {
-            if (!dragActive) return;
-            e.stopPropagation();
-            onSelectCell();
-            onConfirmPlace();
-            endDrag();
           }}
         >
           <planeGeometry args={[cellSize, cellSize]} />

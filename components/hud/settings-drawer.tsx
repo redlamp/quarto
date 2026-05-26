@@ -2,6 +2,7 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/lib/theme/context';
 import { useUiStore, type OpponentMode } from '@/lib/state/ui-store';
 
 interface SettingsDrawerProps {
@@ -24,6 +25,12 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setSoundEnabled = useUiStore((s) => s.setSoundEnabled);
   const uiTheme = useUiStore((s) => s.uiTheme);
   const setUiTheme = useUiStore((s) => s.setUiTheme);
+
+  const { theme, lightingPreset, motionPreset } = useTheme();
+  const setLightingPresetName = useUiStore((s) => s.setLightingPresetName);
+  const setMotionPresetName = useUiStore((s) => s.setMotionPresetName);
+  const lightingPresets = Object.values(theme.lighting);
+  const motionPresets = Object.values(theme.motion);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -77,8 +84,33 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
           </section>
 
           <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">3D visuals</h3>
-            <p className="text-slate text-xs">Camera, lighting, motion presets — wired in M3.</p>
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Lighting</h3>
+            <div className="flex flex-wrap gap-2">
+              {lightingPresets.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant={lightingPreset.name === preset.name ? 'default' : 'outline'}
+                  onClick={() => setLightingPresetName(preset.name)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Motion</h3>
+            <div className="flex flex-wrap gap-2">
+              {motionPresets.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant={motionPreset.name === preset.name ? 'default' : 'outline'}
+                  onClick={() => setMotionPresetName(preset.name)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
           </section>
 
           <section className="flex flex-col gap-2">

@@ -7,11 +7,13 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
+import { useDragStore } from '@/lib/state/drag-store';
 import type { Piece } from '@/lib/game/pieces';
 
 interface HandedPiecePedestalProps {
   piece: Piece | null;
   ownerPlayerID: string | null;
+  draggable: boolean;
 }
 
 // P0 is "front" of the board (+z); P1 is "back" (-z). Pedestal sits between
@@ -27,9 +29,10 @@ function zForOwner(owner: string | null): number {
   return FRONT_Z;
 }
 
-export function HandedPiecePedestal({ piece, ownerPlayerID }: HandedPiecePedestalProps) {
+export function HandedPiecePedestal({ piece, ownerPlayerID, draggable }: HandedPiecePedestalProps) {
   const { theme } = useTheme();
   const motion = useMotion();
+  const startDrag = useDragStore((s) => s.start);
   const groupRef = useRef<Group>(null);
   const prevOwner = useRef<string | null>(ownerPlayerID);
   const visible = piece !== null && ownerPlayerID !== null;
@@ -101,6 +104,18 @@ export function HandedPiecePedestal({ piece, ownerPlayerID }: HandedPiecePedesta
         />
       </mesh>
       <PieceMesh piece={piece} />
+      {draggable && (
+        <mesh
+          position={[0, 0.5, 0]}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            startDrag();
+          }}
+        >
+          <cylinderGeometry args={[0.45, 0.45, 0.9, 16]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
     </group>
   );
 }

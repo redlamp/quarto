@@ -2,11 +2,12 @@
 
 import { Canvas } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { HandedPiecePedestal } from '@/components/board/handed-piece-pedestal';
 import { useTheme } from '@/lib/theme/context';
+import { useDragStore } from '@/lib/state/drag-store';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -33,6 +34,22 @@ interface BoardCanvasProps {
 
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
+  const dragActive = useDragStore((s) => s.active);
+  const endDrag = useDragStore((s) => s.end);
+
+  // Drag is released on the next global pointer-up regardless of target. Cell
+  // pointer-up handlers commit the place; this fallback clears stale state
+  // when the drop lands outside any cell.
+  useEffect(() => {
+    if (!dragActive) return;
+    const onUp = () => endDrag();
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragActive, endDrag]);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -97,9 +114,10 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           onConfirmHandoff={moves.confirmHandoff}
           onClearPendingHandoff={moves.clearPendingHandoff}
         />
-        <HandedPiecePedestal piece={handedPiece} ownerPlayerID={handedOwner} />
+        <HandedPiecePedestal piece={handedPiece} ownerPlayerID={handedOwner} draggable={canPlace} />
         <OrbitControls
           makeDefault
+          enabled={!dragActive}
           target={[-1.0, 0, 0]}
           enablePan={false}
           enableZoom

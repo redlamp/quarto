@@ -20,7 +20,6 @@ interface AnimatedRackSlotProps {
   piece: Piece;
   position: [number, number, number];
   slotSize: number;
-  pieceSize: number;
   showPiece: boolean;
   isPendingHandoff: boolean;
   canPick: boolean;
@@ -33,7 +32,6 @@ export function AnimatedRackSlot({
   piece,
   position,
   slotSize,
-  pieceSize,
   showPiece,
   isPendingHandoff,
   canPick,
@@ -145,19 +143,13 @@ export function AnimatedRackSlot({
       )}
       {showPiece && (
         <group ref={groupRef}>
-          <PieceMesh piece={piece} selected={isPendingHandoff} />
-          {canPick && (
-            <mesh
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, 0.5, 0]}
-              onClick={handleClick}
-              onPointerOver={onHoverIn}
-              onPointerOut={onHoverOut}
-            >
-              <planeGeometry args={[pieceSize, pieceSize]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
-          )}
+          <PieceMesh
+            piece={piece}
+            selected={isPendingHandoff}
+            onClick={canPick ? handleClick : undefined}
+            onPointerOver={canPick ? onHoverIn : undefined}
+            onPointerOut={canPick ? onHoverOut : undefined}
+          />
         </group>
       )}
       {isPendingHandoff && (

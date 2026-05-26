@@ -41,7 +41,7 @@ export function PlacementGhost({ targetIdx, cellPitch, piece }: PlacementGhostPr
 
   return (
     <group ref={groupRef} position={[x, 0, z]}>
-      <PieceMesh piece={piece} ghost />
+      <PieceMesh piece={piece} ghost interactive={false} />
     </group>
   );
 }

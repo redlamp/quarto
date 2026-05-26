@@ -17,7 +17,6 @@ const COLS = 4;
 const PITCH = 0.7;
 const X_OFFSET = -3.6;
 const SLOT_SIZE = PITCH * 0.85;
-const PIECE_SIZE = PITCH * 0.9;
 
 function slotPosition(piece: Piece): [number, number, number] {
   const row = Math.floor(piece / COLS);
@@ -55,7 +54,6 @@ export function PieceRack({
             piece={piece}
             position={slotPosition(piece)}
             slotSize={SLOT_SIZE}
-            pieceSize={PIECE_SIZE}
             showPiece={showPiece}
             isPendingHandoff={isPendingHandoff}
             canPick={canPick}

@@ -11,11 +11,18 @@ interface PieceMeshProps {
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerOver?: (e: React.PointerEvent) => void;
   onPointerOut?: (e: React.PointerEvent) => void;
+  onClick?: (e: React.PointerEvent) => void;
   ghost?: boolean;
   highlight?: boolean;
   selected?: boolean;
   dimmed?: boolean;
+  // When false, the mesh geometry is excluded from raycasting so it can't
+  // intercept pointer events meant for objects behind it (e.g. the ghost
+  // preview floating over a board cell).
+  interactive?: boolean;
 }
+
+const NO_RAYCAST = () => null;
 
 const OUTLINE_THICKNESS = 0.05;
 const EDGE_RADIUS = 0.06;
@@ -49,9 +56,11 @@ export function PieceMesh({
   highlight = false,
   selected = false,
   dimmed = false,
+  interactive = true,
   ...handlers
 }: PieceMeshProps) {
   const { theme } = useTheme();
+  const raycastProp = interactive ? {} : { raycast: NO_RAYCAST };
   const t = useMemo(() => traits(piece), [piece]);
   const p = theme.piece;
   const c = theme.colors;
@@ -91,6 +100,7 @@ export function PieceMesh({
           smoothness={4}
           castShadow
           receiveShadow
+          {...raycastProp}
         >
           {renderClayMaterial()}
           {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
@@ -100,14 +110,14 @@ export function PieceMesh({
         // a quarter-arc fillet at the top + bottom rim while keeping the side
         // at full radius — matches the rounded-edge feel of RoundedBox without
         // tapering the silhouette into a spool shape.
-        <mesh castShadow receiveShadow>
+        <mesh castShadow receiveShadow {...raycastProp}>
           <latheGeometry args={[cylinderProfile, RADIAL_SEGMENTS]} />
           {renderClayMaterial()}
           {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
         </mesh>
       )}
       {t.hollow && (
-        <mesh position={[0, height + 0.001, 0]} receiveShadow>
+        <mesh position={[0, height + 0.001, 0]} receiveShadow {...raycastProp}>
           {t.square ? (
             <boxGeometry args={[hollowSizeXZ, p.hollowDepth, hollowSizeXZ]} />
           ) : (

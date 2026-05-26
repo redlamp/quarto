@@ -1,7 +1,7 @@
 'use client';
 
 import { useGSAP } from '@gsap/react';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Html } from '@react-three/drei';
 import gsap from 'gsap';
 import { Group } from 'three';
@@ -43,10 +43,13 @@ export function AnimatedRackSlot({
   const motion = useMotion();
   const playSfx = useSfx();
   const setHover = useHoverStore((s) => s.set);
+  const hoveredPiece = useHoverStore((s) => s.piece);
   const groupRef = useRef<Group>(null);
   const prevShowPiece = useRef(false);
-  const [hovered, setHovered] = useState(false);
 
+  // Single source of truth — only the piece currently in hover-store is lit, so
+  // at most one slot highlights at a time.
+  const hovered = hoveredPiece === piece;
   const liftActive = hovered && canPick && showPiece;
   const targetY = isPendingHandoff ? RAISE_Y : liftActive ? HOVER_LIFT_Y : 0;
 
@@ -92,13 +95,13 @@ export function AnimatedRackSlot({
 
   const onHoverIn = (e: React.PointerEvent) => {
     e.stopPropagation();
-    setHovered(true);
     if (showPiece) setHover(piece);
   };
   const onHoverOut = (e: React.PointerEvent) => {
     e.stopPropagation();
-    setHovered(false);
-    setHover(null);
+    // Only clear if this piece is still the hovered one — guards against a
+    // late pointer-out from the slot we just left clobbering the new hover.
+    if (useHoverStore.getState().piece === piece) setHover(null);
   };
 
   const handleClick = (e: React.SyntheticEvent) => {

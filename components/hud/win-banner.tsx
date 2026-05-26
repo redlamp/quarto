@@ -27,19 +27,24 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
   const winner = state.G.winner;
   const draw = state.G.draw || gameover.draw;
 
+  // Float above the board near the top — no full-screen scrim, so the winning
+  // line stays visible and the parallax camera keeps responding to the pointer.
+  // pointer-events pass through except over the card itself.
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 p-8">
-      <div className="bg-snow flex w-[min(420px,90vw)] flex-col items-center gap-4 rounded-lg p-8 shadow-xl">
-        <h2 className="text-2xl font-semibold tracking-tight">
+    <div className="pointer-events-none absolute top-0 right-0 left-0 z-30 flex justify-center px-4 pt-20">
+      <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-xl bg-[var(--color-surface)]/85 px-8 py-5 text-center shadow-2xl backdrop-blur-md">
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">
           {winner ? `Player ${Number(winner.player) + 1} wins` : draw ? 'Draw' : 'Game over'}
         </h2>
         {winner && state.G.board[winner.line[0]] !== null && (
-          <p className="text-slate text-sm">
+          <p className="text-sm text-[var(--color-fog)]">
             Line shared:{' '}
             {sharedAttributeLabel(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)}
           </p>
         )}
-        <Button onClick={onRestart}>Play again</Button>
+        <Button onClick={onRestart} className="mt-1">
+          Play again
+        </Button>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
+import { useFlightStore } from '@/lib/state/flight-store';
 import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
@@ -49,24 +50,54 @@ export function AnimatedBoardCell({
 }: AnimatedBoardCellProps) {
   const { theme } = useTheme();
   const motion = useMotion();
+  const flyingReceiver = useFlightStore((s) => s.flyingReceiver);
   const pieceGroupRef = useRef<Group>(null);
   const prevFilled = useRef(piece !== null);
+  const dropped = useRef(piece !== null);
   const filled = piece !== null;
   const c = theme.colors;
 
+  // Placement drop is gated on the handoff flight landing first — the piece a
+  // player just placed shouldn't drop while its inbound piece is still arcing
+  // to their pedestal (matters for fast AI moves). While a flight is in
+  // progress the freshly-placed piece is held hidden, then drops once clear.
   useGSAP(
     () => {
-      if (filled && !prevFilled.current && pieceGroupRef.current) {
-        const g = pieceGroupRef.current;
-        gsap.fromTo(
-          g.position,
-          { y: motion.reduced ? 0 : DROP_FROM_Y },
-          { y: 0, duration: motion.base, ease: 'power2.in' },
-        );
+      const g = pieceGroupRef.current;
+      if (!g) {
+        prevFilled.current = filled;
+        return;
+      }
+      if (filled && !prevFilled.current) {
+        dropped.current = false;
       }
       prevFilled.current = filled;
+
+      if (!filled) {
+        dropped.current = false;
+        return;
+      }
+
+      if (!dropped.current) {
+        if (flyingReceiver !== null) {
+          // Hold the piece off-screen until the flight clears.
+          g.visible = false;
+          return;
+        }
+        g.visible = true;
+        dropped.current = true;
+        if (!motion.reduced) {
+          gsap.fromTo(
+            g.position,
+            { y: DROP_FROM_Y },
+            { y: 0, duration: motion.base, ease: 'power2.in' },
+          );
+        } else {
+          g.position.y = 0;
+        }
+      }
     },
-    { dependencies: [filled, motion.base, motion.reduced] },
+    { dependencies: [filled, flyingReceiver, motion.base, motion.reduced] },
   );
 
   const [cascadeOn, setCascadeOn] = useState(false);

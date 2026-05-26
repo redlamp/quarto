@@ -22,6 +22,7 @@ export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
   const motion = useMotion();
   const groupRef = useRef<Group>(null);
   const prevHanded = useRef<Piece | null>(handedPiece);
+  const flightToken = useRef(0);
   const setFlying = useFlightStore((s) => s.setFlying);
   const clearFlying = useFlightStore((s) => s.clear);
   const [flightPiece, setFlightPiece] = useState<Piece | null>(null);
@@ -33,6 +34,7 @@ export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
       const g = groupRef.current;
       if (handedPiece === null || !wasNull || receiver === null || !g) return;
 
+      const token = ++flightToken.current;
       const from = rackSlotWorld(handedPiece);
       const toX = 0;
       const toZ = PEDESTAL_Z[receiver];
@@ -40,18 +42,20 @@ export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
       setFlightPiece(handedPiece);
       setFlying(receiver);
 
-      const dur = motion.reduced ? 0 : motion.cinematic;
-      if (dur === 0) {
+      // Guard against a rapid follow-up flight (fast AI): a stale timeline's
+      // onComplete must not clear a newer flight's state.
+      const finish = () => {
+        if (flightToken.current !== token) return;
         setFlightPiece(null);
         clearFlying();
+      };
+
+      const dur = motion.reduced ? 0 : motion.cinematic;
+      if (dur === 0) {
+        finish();
         return;
       }
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setFlightPiece(null);
-          clearFlying();
-        },
-      });
+      const tl = gsap.timeline({ onComplete: finish });
       tl.to(g.position, { x: toX, z: toZ, duration: dur, ease: 'power1.inOut' }, 0);
       tl.to(g.position, { y: ARC_PEAK_Y, duration: dur / 2, ease: 'power2.out' }, 0);
       tl.to(g.position, { y: 0, duration: dur / 2, ease: 'power2.in' }, dur / 2);

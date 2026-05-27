@@ -17,8 +17,23 @@ export const CAMERA_PRESETS: Record<CameraMode, CameraPreset> = {
   'top-down': { position: [0, 11, 0.5], target: [0, 0, 0] },
   iso: { position: [-5, 7, 7], target: [-1, 0, 0] },
   orbit: { position: [-1.2, 7.5, 7.8], target: [-1, 0, 0] },
-  parallax: { position: [-3, 7.5, 7.5], target: [-1, 0, 0] },
+  // Same framing as free orbit — parallax orbits the same sphere, just driven
+  // by cursor position instead of drag.
+  parallax: { position: [-1.2, 7.5, 7.8], target: [-1, 0, 0] },
 };
+
+// Parallax orbits the board on the same sphere as free orbit. Derive the base
+// spherical coords from the orbit preset; cursor position nudges azimuth/polar.
+const ORBIT_TARGET = new Vector3(...CAMERA_PRESETS.orbit.target);
+const ORBIT_OFFSET = new Vector3(...CAMERA_PRESETS.orbit.position).sub(ORBIT_TARGET);
+const ORBIT_RADIUS = ORBIT_OFFSET.length();
+const BASE_THETA = Math.atan2(ORBIT_OFFSET.x, ORBIT_OFFSET.z);
+const BASE_PHI = Math.acos(ORBIT_OFFSET.y / ORBIT_RADIUS);
+// Maps the 0–4 slider strength to a sane angular swing (radians) at cursor edge.
+const PARALLAX_ANGLE_SCALE = 0.2;
+// Match OrbitControls' polar limits so cursor-orbit can't dip under the board.
+const MIN_PHI = Math.PI / 6;
+const MAX_PHI = Math.PI / 2.2;
 
 interface CameraRigProps {
   mode: CameraMode;
@@ -33,7 +48,7 @@ export function CameraRig({ mode }: CameraRigProps) {
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
   const parallaxCursor = useRef({ x: 0, y: 0 });
-  const parallaxBase = useRef(new Vector3(...CAMERA_PRESETS.parallax.position));
+  const desiredPos = useRef(new Vector3());
 
   useGSAP(
     () => {
@@ -60,7 +75,6 @@ export function CameraRig({ mode }: CameraRigProps) {
         camera.position.set(...preset.position);
         lookAtTarget.current.set(...preset.target);
       }
-      parallaxBase.current.set(...CAMERA_PRESETS.parallax.position);
     },
     { dependencies: [mode, motion.cinematic, motion.reduced, camera] },
   );
@@ -77,14 +91,21 @@ export function CameraRig({ mode }: CameraRigProps) {
     return () => canvas.removeEventListener('pointermove', onMove);
   }, [mode, gl]);
 
-  // Per-frame: apply parallax offset + lookAt. OrbitControls owns the camera
-  // in orbit mode, so skip our manual lookAt there.
+  // Per-frame: orbit the camera around the board by cursor position, then
+  // lookAt. OrbitControls owns the camera in orbit mode, so skip our lookAt
+  // there.
   useFrame(() => {
     if (mode === 'parallax' && !drawerOpen) {
-      const target = parallaxBase.current.clone();
-      target.x += parallaxCursor.current.x * parallaxX;
-      target.y += parallaxCursor.current.y * parallaxY;
-      camera.position.lerp(target, parallaxLerp);
+      const theta = BASE_THETA + parallaxCursor.current.x * parallaxX * PARALLAX_ANGLE_SCALE;
+      let phi = BASE_PHI - parallaxCursor.current.y * parallaxY * PARALLAX_ANGLE_SCALE;
+      phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi));
+      const sinPhi = Math.sin(phi);
+      desiredPos.current.set(
+        ORBIT_TARGET.x + ORBIT_RADIUS * sinPhi * Math.sin(theta),
+        ORBIT_TARGET.y + ORBIT_RADIUS * Math.cos(phi),
+        ORBIT_TARGET.z + ORBIT_RADIUS * sinPhi * Math.cos(theta),
+      );
+      camera.position.lerp(desiredPos.current, parallaxLerp);
     }
     if (mode !== 'orbit') {
       camera.lookAt(lookAtTarget.current);

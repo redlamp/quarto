@@ -148,12 +148,12 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
         <CameraRig mode={cameraMode} focalTarget={focalTarget} />
         <OrbitControls
           makeDefault
-          enabled={cameraMode === 'orbit' && !drawerOpen}
+          enabled={(cameraMode === 'orbit' || cameraMode === 'iso') && !drawerOpen}
           target={focalTarget}
           enablePan={false}
           enableZoom
           minDistance={6}
-          maxDistance={14}
+          maxDistance={42}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
         />

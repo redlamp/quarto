@@ -4,7 +4,7 @@ import { useGSAP } from '@gsap/react';
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import gsap from 'gsap';
-import { Vector3 } from 'three';
+import { Vector3, type PerspectiveCamera } from 'three';
 import { useMotion } from '@/lib/motion/use-motion';
 import { useUiStore, type CameraMode } from '@/lib/state/ui-store';
 
@@ -15,12 +15,19 @@ interface CameraPreset {
 
 export const CAMERA_PRESETS: Record<CameraMode, CameraPreset> = {
   'top-down': { position: [0, 11, 0.5], target: [0, 0, 0] },
-  iso: { position: [-5, 7, 7], target: [-1, 0, 0] },
+  // Fake orthographic: same iso direction, but dollied ~3x farther so the
+  // narrow ISO_FOV flattens perspective into a near-parallel projection.
+  iso: { position: [-15.6, 21.9, 21.9], target: [-1, 0, 0] },
   orbit: { position: [-1.2, 7.5, 7.8], target: [-1, 0, 0] },
   // Same framing as free orbit — parallax orbits the same sphere, just driven
   // by cursor position instead of drag.
   parallax: { position: [-1.2, 7.5, 7.8], target: [-1, 0, 0] },
 };
+
+// Iso fakes orthographic via a narrow FOV + far dolly; other modes use the
+// normal perspective FOV (matches the Canvas camera fov). Tweened on switch.
+const DEFAULT_FOV = 42;
+const ISO_FOV = 14;
 
 // Parallax orbits the board on the same sphere as free orbit. The orbit center
 // is the focal point; derive radius + base azimuth/polar from the orbit preset
@@ -63,6 +70,9 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
   const parallaxLerp = useUiStore((s) => s.parallaxLerp);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const [fx, fy, fz] = focalTarget;
+  // Alias the camera through a ref so FOV mutations (an intentional R3F pattern)
+  // don't trip React 19's hook-immutability lint.
+  const cameraRef = useRef(camera as PerspectiveCamera);
   // The focal point doubles as the parallax orbit center + lookAt target.
   const focalRef = useRef(new Vector3(fx, fy, fz));
   const lookAtTarget = useRef(new Vector3(fx, fy, fz));
@@ -92,6 +102,11 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
       orbitRadius.current = sph.radius;
       baseTheta.current = sph.theta;
       basePhi.current = sph.phi;
+      const persp = cameraRef.current;
+      const targetFov = mode === 'iso' ? ISO_FOV : DEFAULT_FOV;
+      // OrbitControls owns orientation in the draggable modes; keep it synced as
+      // the position tween runs.
+      const syncControls = mode === 'orbit' || mode === 'iso';
       if (dur > 0) {
         gsap.to(camera.position, {
           x: preset.position[0],
@@ -100,6 +115,8 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
           duration: dur,
           ease: 'power2.inOut',
           overwrite: 'auto',
+          onUpdate: syncControls ? () => controls?.update() : undefined,
+          onComplete: syncControls ? () => controls?.update() : undefined,
         });
         gsap.to(lookAtTarget.current, {
           x: fx,
@@ -109,9 +126,22 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
           ease: 'power2.inOut',
           overwrite: 'auto',
         });
+        if (persp.isPerspectiveCamera) {
+          gsap.to(persp, {
+            fov: targetFov,
+            duration: dur,
+            ease: 'power2.inOut',
+            overwrite: 'auto',
+            onUpdate: () => persp.updateProjectionMatrix(),
+          });
+        }
       } else {
         camera.position.set(...preset.position);
         lookAtTarget.current.set(fx, fy, fz);
+        if (persp.isPerspectiveCamera) {
+          persp.fov = targetFov;
+          persp.updateProjectionMatrix();
+        }
       }
       // Re-enter parallax with the cursor measured from center.
       if (mode === 'parallax') {
@@ -121,7 +151,7 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
         cursorOrigin.current.y = 0;
       }
     },
-    { dependencies: [mode, fx, fy, fz, motion.cinematic, motion.reduced, camera] },
+    { dependencies: [mode, fx, fy, fz, motion.cinematic, motion.reduced, camera, controls] },
   );
 
   useEffect(() => {
@@ -197,7 +227,7 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
 
   // Double-click returns the camera to the default player framing.
   useEffect(() => {
-    if (mode !== 'orbit' && mode !== 'parallax') return;
+    if (mode !== 'orbit' && mode !== 'parallax' && mode !== 'iso') return;
     const canvas = gl.domElement;
     const onDbl = () => {
       if (useUiStore.getState().drawerOpen) return;
@@ -215,8 +245,9 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
         dragging.current = false;
         return;
       }
-      // Orbit: tween position back, keeping OrbitControls in sync.
-      const pos = CAMERA_PRESETS.orbit.position;
+      // Orbit / iso (draggable): tween position back, keeping OrbitControls in
+      // sync.
+      const pos = CAMERA_PRESETS[mode].position;
       controls?.target.set(fx, fy, fz);
       const dur = motion.reduced ? 0 : motion.cinematic;
       if (dur > 0) {
@@ -237,7 +268,7 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
     };
     canvas.addEventListener('dblclick', onDbl);
     return () => canvas.removeEventListener('dblclick', onDbl);
-  }, [mode, gl, camera, controls, fx, fy, fz, motion.reduced, motion.cinematic]);
+  }, [mode, gl, camera, controls, focalTarget, fx, fy, fz, motion.reduced, motion.cinematic]);
 
   // Per-frame: orbit the camera around the board by cursor position, then
   // lookAt. OrbitControls owns the camera in orbit mode, so skip our lookAt
@@ -262,7 +293,8 @@ export function CameraRig({ mode, focalTarget }: CameraRigProps) {
       );
       camera.position.lerp(desiredPos.current, drag ? 1 : parallaxLerp);
     }
-    if (mode !== 'orbit') {
+    // OrbitControls owns orientation in the draggable modes (orbit + iso).
+    if (mode !== 'orbit' && mode !== 'iso') {
       camera.lookAt(lookAtTarget.current);
     }
   });

@@ -75,6 +75,13 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
     >
       <Suspense fallback={null}>
         <ambientLight intensity={lightingPreset.ambient} />
+        {/* Soft sky/ground fill lifts the flat look without adding a harsh
+            specular highlight that would glare in the glossy gems. */}
+        <hemisphereLight
+          intensity={0.45}
+          color={theme.colors.surface}
+          groundColor={theme.colors.groundSurface}
+        />
         <directionalLight
           position={lightingPreset.directionalPosition}
           intensity={lightingPreset.directional}
@@ -82,9 +89,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
         />
         {/* Intensity is declarative so drei keeps it pinned — setting it
             imperatively in onCreated got clobbered back to drei's default (1)
-            whenever the Environment subtree re-applied, washing out the scene. */}
+            whenever the Environment subtree re-applied, washing out the scene.
+            Kept low so the studio HDRI's softboxes don't glare in the glossy
+            gems/pieces and bounce into the camera. */}
         {lightingPreset.environment && (
-          <Environment preset={lightingPreset.environment} environmentIntensity={0.35} />
+          <Environment preset={lightingPreset.environment} environmentIntensity={0.22} />
         )}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
           <planeGeometry args={[24, 24]} />

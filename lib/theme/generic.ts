@@ -45,18 +45,19 @@ export const generic: Theme = {
       name: 'studio-hdri',
       label: 'Studio HDRI',
       ambient: 0.55,
-      directional: 0.9,
-      // Up + behind the camera vantage. Ground reflection bounces forward,
-      // away from the lens.
-      directionalPosition: [-3, 12, 10],
+      directional: 0.75,
+      // High + camera-side z (positive). Reflection off the board bounces to
+      // -z (away from the lens); the extra height keeps the specular hot-spot
+      // off the pieces as the camera orbits low.
+      directionalPosition: [-4, 15, 7],
       environment: 'studio',
     },
     'overhead-soft': {
       name: 'overhead-soft',
       label: 'Single overhead',
       ambient: 0.45,
-      directional: 1.2,
-      directionalPosition: [-2, 11, 6],
+      directional: 1.05,
+      directionalPosition: [-3, 14, 5],
       environment: null,
     },
   },

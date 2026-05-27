@@ -34,6 +34,8 @@ const PARALLAX_ANGLE_SCALE = 0.2;
 // Match OrbitControls' polar limits so cursor-orbit can't dip under the board.
 const MIN_PHI = Math.PI / 6;
 const MAX_PHI = Math.PI / 2.2;
+// Radians of orbit per pixel dragged in parallax mode.
+const DRAG_SPEED = 0.005;
 
 interface CameraRigProps {
   mode: CameraMode;
@@ -49,6 +51,12 @@ export function CameraRig({ mode }: CameraRigProps) {
   const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
   const parallaxCursor = useRef({ x: 0, y: 0 });
   const desiredPos = useRef(new Vector3());
+  // Parallax orbit base — cursor offsets ride on top of this; dragging rewrites
+  // it so the follow re-centers on wherever you let go.
+  const baseTheta = useRef(BASE_THETA);
+  const basePhi = useRef(BASE_PHI);
+  const dragging = useRef(false);
+  const lastPointer = useRef({ x: 0, y: 0 });
 
   useGSAP(
     () => {
@@ -75,6 +83,13 @@ export function CameraRig({ mode }: CameraRigProps) {
         camera.position.set(...preset.position);
         lookAtTarget.current.set(...preset.target);
       }
+      // Re-enter parallax at the standard framing.
+      if (mode === 'parallax') {
+        baseTheta.current = BASE_THETA;
+        basePhi.current = BASE_PHI;
+        parallaxCursor.current.x = 0;
+        parallaxCursor.current.y = 0;
+      }
     },
     { dependencies: [mode, motion.cinematic, motion.reduced, camera] },
   );
@@ -82,13 +97,36 @@ export function CameraRig({ mode }: CameraRigProps) {
   useEffect(() => {
     if (mode !== 'parallax') return;
     const canvas = gl.domElement;
-    const onMove = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      parallaxCursor.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      parallaxCursor.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    const onDown = (e: PointerEvent) => {
+      if (useUiStore.getState().drawerOpen) return;
+      dragging.current = true;
+      lastPointer.current = { x: e.clientX, y: e.clientY };
     };
+    const onMove = (e: PointerEvent) => {
+      if (dragging.current) {
+        // Drag re-bases the orbit: pan azimuth/polar by the pointer delta.
+        const dx = e.clientX - lastPointer.current.x;
+        const dy = e.clientY - lastPointer.current.y;
+        lastPointer.current = { x: e.clientX, y: e.clientY };
+        baseTheta.current -= dx * DRAG_SPEED;
+        basePhi.current = Math.max(MIN_PHI, Math.min(MAX_PHI, basePhi.current - dy * DRAG_SPEED));
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        parallaxCursor.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        parallaxCursor.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      }
+    };
+    const onUp = () => {
+      dragging.current = false;
+    };
+    canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
-    return () => canvas.removeEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
   }, [mode, gl]);
 
   // Per-frame: orbit the camera around the board by cursor position, then
@@ -96,8 +134,14 @@ export function CameraRig({ mode }: CameraRigProps) {
   // there.
   useFrame(() => {
     if (mode === 'parallax' && !drawerOpen) {
-      const theta = BASE_THETA + parallaxCursor.current.x * parallaxX * PARALLAX_ANGLE_SCALE;
-      let phi = BASE_PHI - parallaxCursor.current.y * parallaxY * PARALLAX_ANGLE_SCALE;
+      const drag = dragging.current;
+      // While dragging, the camera tracks the drag (base only); on release the
+      // cursor offset rides on top of the new base.
+      const theta =
+        baseTheta.current +
+        (drag ? 0 : parallaxCursor.current.x * parallaxX * PARALLAX_ANGLE_SCALE);
+      let phi =
+        basePhi.current - (drag ? 0 : parallaxCursor.current.y * parallaxY * PARALLAX_ANGLE_SCALE);
       phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi));
       const sinPhi = Math.sin(phi);
       desiredPos.current.set(
@@ -105,7 +149,7 @@ export function CameraRig({ mode }: CameraRigProps) {
         ORBIT_TARGET.y + ORBIT_RADIUS * Math.cos(phi),
         ORBIT_TARGET.z + ORBIT_RADIUS * sinPhi * Math.cos(theta),
       );
-      camera.position.lerp(desiredPos.current, parallaxLerp);
+      camera.position.lerp(desiredPos.current, drag ? 1 : parallaxLerp);
     }
     if (mode !== 'orbit') {
       camera.lookAt(lookAtTarget.current);

@@ -79,6 +79,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setParallaxY = useUiStore((s) => s.setParallaxY);
   const parallaxLerp = useUiStore((s) => s.parallaxLerp);
   const setParallaxLerp = useUiStore((s) => s.setParallaxLerp);
+  const resetParallax = useUiStore((s) => s.resetParallax);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -177,6 +178,9 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               step={0.01}
               onChange={setParallaxLerp}
             />
+            <Button variant="outline" onClick={resetParallax}>
+              Reset parallax
+            </Button>
           </section>
 
           <section className="flex flex-col gap-2">

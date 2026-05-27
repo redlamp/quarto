@@ -5,6 +5,8 @@ export type OpponentMode = 'hot-seat' | 'ai-random';
 export type UiTheme = 'light' | 'dark';
 export type CameraMode = 'top-down' | 'iso' | 'orbit' | 'parallax';
 
+export const PARALLAX_DEFAULTS = { x: 1.6, y: 1.0, lerp: 0.1 } as const;
+
 interface UiState {
   drawerOpen: boolean;
   openDrawer: () => void;
@@ -44,6 +46,7 @@ interface UiState {
   setParallaxY: (n: number) => void;
   parallaxLerp: number;
   setParallaxLerp: (n: number) => void;
+  resetParallax: () => void;
 
   uiTheme: UiTheme;
   setUiTheme: (t: UiTheme) => void;
@@ -82,12 +85,18 @@ export const useUiStore = create<UiState>()(
       cameraMode: 'orbit',
       setCameraMode: (mode) => set({ cameraMode: mode }),
 
-      parallaxX: 1.6,
+      parallaxX: PARALLAX_DEFAULTS.x,
       setParallaxX: (n) => set({ parallaxX: n }),
-      parallaxY: 1.0,
+      parallaxY: PARALLAX_DEFAULTS.y,
       setParallaxY: (n) => set({ parallaxY: n }),
-      parallaxLerp: 0.1,
+      parallaxLerp: PARALLAX_DEFAULTS.lerp,
       setParallaxLerp: (n) => set({ parallaxLerp: n }),
+      resetParallax: () =>
+        set({
+          parallaxX: PARALLAX_DEFAULTS.x,
+          parallaxY: PARALLAX_DEFAULTS.y,
+          parallaxLerp: PARALLAX_DEFAULTS.lerp,
+        }),
 
       uiTheme: 'light',
       setUiTheme: (t) => set({ uiTheme: t }),

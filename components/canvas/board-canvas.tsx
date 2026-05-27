@@ -38,6 +38,7 @@ interface BoardCanvasProps {
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
   const cameraMode = useUiStore((s) => s.cameraMode);
+  const focalPoint = useUiStore((s) => s.focalPoint);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
@@ -63,6 +64,14 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const winLine = useMemo(() => {
     return state?.ctx.gameover && winner ? winner.line : null;
   }, [state?.ctx.gameover, winner]);
+
+  // Camera focal point (orbit center + lookAt). 'active' biases toward the
+  // current player's side of the board (P0 front +z, P1 back -z).
+  const focalTarget = useMemo<[number, number, number]>(() => {
+    if (focalPoint === 'board') return [0, 0, 0];
+    if (focalPoint === 'active') return [-0.5, 0, currentPlayer === '1' ? -1.1 : 1.1];
+    return [-1, 0, 0];
+  }, [focalPoint, currentPlayer]);
 
   return (
     <Canvas
@@ -136,11 +145,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
         />
         <HandoffFlight handedPiece={handedPiece} receiver={receiver} />
         <PlacementFlight cells={board} currentPlayer={currentPlayer} cellPitch={cellPitch} />
-        <CameraRig mode={cameraMode} />
+        <CameraRig mode={cameraMode} focalTarget={focalTarget} />
         <OrbitControls
           makeDefault
           enabled={cameraMode === 'orbit' && !drawerOpen}
-          target={CAMERA_PRESETS.orbit.target}
+          target={focalTarget}
           enablePan={false}
           enableZoom
           minDistance={6}

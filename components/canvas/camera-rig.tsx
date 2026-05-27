@@ -22,13 +22,17 @@ export const CAMERA_PRESETS: Record<CameraMode, CameraPreset> = {
   parallax: { position: [-1.2, 7.5, 7.8], target: [-1, 0, 0] },
 };
 
-// Parallax orbits the board on the same sphere as free orbit. Derive the base
-// spherical coords from the orbit preset; cursor position nudges azimuth/polar.
-const ORBIT_TARGET = new Vector3(...CAMERA_PRESETS.orbit.target);
-const ORBIT_OFFSET = new Vector3(...CAMERA_PRESETS.orbit.position).sub(ORBIT_TARGET);
-const ORBIT_RADIUS = ORBIT_OFFSET.length();
-const BASE_THETA = Math.atan2(ORBIT_OFFSET.x, ORBIT_OFFSET.z);
-const BASE_PHI = Math.acos(ORBIT_OFFSET.y / ORBIT_RADIUS);
+// Parallax orbits the board on the same sphere as free orbit. The orbit center
+// is the focal point; derive radius + base azimuth/polar from the orbit preset
+// position relative to that focal point.
+function sphericalFromFocal(focal: readonly [number, number, number]) {
+  const pos = CAMERA_PRESETS.orbit.position;
+  const ox = pos[0] - focal[0];
+  const oy = pos[1] - focal[1];
+  const oz = pos[2] - focal[2];
+  const radius = Math.hypot(ox, oy, oz);
+  return { radius, theta: Math.atan2(ox, oz), phi: Math.acos(oy / radius) };
+}
 // Maps the 0–4 slider strength to a sane angular swing (radians) at cursor edge.
 const PARALLAX_ANGLE_SCALE = 0.2;
 // Match OrbitControls' polar limits so cursor-orbit can't dip under the board.
@@ -42,6 +46,7 @@ const DRAG_THRESHOLD = 6;
 
 interface CameraRigProps {
   mode: CameraMode;
+  focalTarget: [number, number, number];
 }
 
 interface OrbitLike {
@@ -49,7 +54,7 @@ interface OrbitLike {
   target: { set: (x: number, y: number, z: number) => void };
 }
 
-export function CameraRig({ mode }: CameraRigProps) {
+export function CameraRig({ mode, focalTarget }: CameraRigProps) {
   const { camera, gl } = useThree();
   const controls = useThree((s) => s.controls) as OrbitLike | null;
   const motion = useMotion();
@@ -57,7 +62,10 @@ export function CameraRig({ mode }: CameraRigProps) {
   const parallaxY = useUiStore((s) => s.parallaxY);
   const parallaxLerp = useUiStore((s) => s.parallaxLerp);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
-  const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
+  const [fx, fy, fz] = focalTarget;
+  // The focal point doubles as the parallax orbit center + lookAt target.
+  const focalRef = useRef(new Vector3(fx, fy, fz));
+  const lookAtTarget = useRef(new Vector3(fx, fy, fz));
   const parallaxCursor = useRef({ x: 0, y: 0 });
   // Screen point (normalized) that maps to zero cursor offset. Re-based to the
   // pointer on drag release so the follow resumes from there without a jerk.
@@ -65,8 +73,10 @@ export function CameraRig({ mode }: CameraRigProps) {
   const desiredPos = useRef(new Vector3());
   // Parallax orbit base — cursor offsets ride on top of this; dragging rewrites
   // it so the follow re-centers on wherever you let go.
-  const baseTheta = useRef(BASE_THETA);
-  const basePhi = useRef(BASE_PHI);
+  const initialSph = sphericalFromFocal(focalTarget);
+  const orbitRadius = useRef(initialSph.radius);
+  const baseTheta = useRef(initialSph.theta);
+  const basePhi = useRef(initialSph.phi);
   const pressing = useRef(false);
   const dragging = useRef(false);
   const pointerDownAt = useRef({ x: 0, y: 0 });
@@ -76,6 +86,12 @@ export function CameraRig({ mode }: CameraRigProps) {
     () => {
       const preset = CAMERA_PRESETS[mode];
       const dur = motion.reduced ? 0 : motion.cinematic;
+      // Orbit base is relative to the focal point (orbit center + lookAt).
+      focalRef.current.set(fx, fy, fz);
+      const sph = sphericalFromFocal(focalTarget);
+      orbitRadius.current = sph.radius;
+      baseTheta.current = sph.theta;
+      basePhi.current = sph.phi;
       if (dur > 0) {
         gsap.to(camera.position, {
           x: preset.position[0],
@@ -86,28 +102,26 @@ export function CameraRig({ mode }: CameraRigProps) {
           overwrite: 'auto',
         });
         gsap.to(lookAtTarget.current, {
-          x: preset.target[0],
-          y: preset.target[1],
-          z: preset.target[2],
+          x: fx,
+          y: fy,
+          z: fz,
           duration: dur,
           ease: 'power2.inOut',
           overwrite: 'auto',
         });
       } else {
         camera.position.set(...preset.position);
-        lookAtTarget.current.set(...preset.target);
+        lookAtTarget.current.set(fx, fy, fz);
       }
-      // Re-enter parallax at the standard framing (cursor measured from center).
+      // Re-enter parallax with the cursor measured from center.
       if (mode === 'parallax') {
-        baseTheta.current = BASE_THETA;
-        basePhi.current = BASE_PHI;
         parallaxCursor.current.x = 0;
         parallaxCursor.current.y = 0;
         cursorOrigin.current.x = 0;
         cursorOrigin.current.y = 0;
       }
     },
-    { dependencies: [mode, motion.cinematic, motion.reduced, camera] },
+    { dependencies: [mode, fx, fy, fz, motion.cinematic, motion.reduced, camera] },
   );
 
   useEffect(() => {
@@ -189,8 +203,10 @@ export function CameraRig({ mode }: CameraRigProps) {
       if (useUiStore.getState().drawerOpen) return;
       if (mode === 'parallax') {
         // Reset the orbit base + cursor; the per-frame follow eases home.
-        baseTheta.current = BASE_THETA;
-        basePhi.current = BASE_PHI;
+        const sph = sphericalFromFocal(focalTarget);
+        baseTheta.current = sph.theta;
+        basePhi.current = sph.phi;
+        orbitRadius.current = sph.radius;
         parallaxCursor.current.x = 0;
         parallaxCursor.current.y = 0;
         cursorOrigin.current.x = 0;
@@ -201,8 +217,7 @@ export function CameraRig({ mode }: CameraRigProps) {
       }
       // Orbit: tween position back, keeping OrbitControls in sync.
       const pos = CAMERA_PRESETS.orbit.position;
-      const tgt = CAMERA_PRESETS.orbit.target;
-      controls?.target.set(tgt[0], tgt[1], tgt[2]);
+      controls?.target.set(fx, fy, fz);
       const dur = motion.reduced ? 0 : motion.cinematic;
       if (dur > 0) {
         gsap.to(camera.position, {
@@ -222,7 +237,7 @@ export function CameraRig({ mode }: CameraRigProps) {
     };
     canvas.addEventListener('dblclick', onDbl);
     return () => canvas.removeEventListener('dblclick', onDbl);
-  }, [mode, gl, camera, controls, motion.reduced, motion.cinematic]);
+  }, [mode, gl, camera, controls, fx, fy, fz, motion.reduced, motion.cinematic]);
 
   // Per-frame: orbit the camera around the board by cursor position, then
   // lookAt. OrbitControls owns the camera in orbit mode, so skip our lookAt
@@ -239,10 +254,11 @@ export function CameraRig({ mode }: CameraRigProps) {
         basePhi.current - (drag ? 0 : parallaxCursor.current.y * parallaxY * PARALLAX_ANGLE_SCALE);
       phi = Math.max(MIN_PHI, Math.min(MAX_PHI, phi));
       const sinPhi = Math.sin(phi);
+      const r = orbitRadius.current;
       desiredPos.current.set(
-        ORBIT_TARGET.x + ORBIT_RADIUS * sinPhi * Math.sin(theta),
-        ORBIT_TARGET.y + ORBIT_RADIUS * Math.cos(phi),
-        ORBIT_TARGET.z + ORBIT_RADIUS * sinPhi * Math.cos(theta),
+        focalRef.current.x + r * sinPhi * Math.sin(theta),
+        focalRef.current.y + r * Math.cos(phi),
+        focalRef.current.z + r * sinPhi * Math.cos(theta),
       );
       camera.position.lerp(desiredPos.current, drag ? 1 : parallaxLerp);
     }

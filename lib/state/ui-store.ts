@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export type OpponentMode = 'hot-seat' | 'ai-random';
 export type UiTheme = 'light' | 'dark';
 export type CameraMode = 'top-down' | 'iso' | 'orbit' | 'parallax';
+export type FocalPoint = 'board' | 'play-area' | 'active';
 
 export const PARALLAX_DEFAULTS = { x: 1.6, y: 1.0, lerp: 0.1 } as const;
 
@@ -37,6 +38,9 @@ interface UiState {
 
   cameraMode: CameraMode;
   setCameraMode: (mode: CameraMode) => void;
+
+  focalPoint: FocalPoint;
+  setFocalPoint: (f: FocalPoint) => void;
 
   // Parallax camera tuning: cursor-driven sway magnitudes (world units) + the
   // per-frame lerp factor that smooths the follow.
@@ -85,6 +89,9 @@ export const useUiStore = create<UiState>()(
       cameraMode: 'orbit',
       setCameraMode: (mode) => set({ cameraMode: mode }),
 
+      focalPoint: 'play-area',
+      setFocalPoint: (f) => set({ focalPoint: f }),
+
       parallaxX: PARALLAX_DEFAULTS.x,
       setParallaxX: (n) => set({ parallaxX: n }),
       parallaxY: PARALLAX_DEFAULTS.y,
@@ -114,6 +121,7 @@ export const useUiStore = create<UiState>()(
         confirmEnabled: s.confirmEnabled,
         clockPresetName: s.clockPresetName,
         cameraMode: s.cameraMode,
+        focalPoint: s.focalPoint,
         parallaxX: s.parallaxX,
         parallaxY: s.parallaxY,
         parallaxLerp: s.parallaxLerp,

@@ -4,7 +4,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
-import { useUiStore, type CameraMode, type OpponentMode } from '@/lib/state/ui-store';
+import {
+  useUiStore,
+  type CameraMode,
+  type FocalPoint,
+  type OpponentMode,
+} from '@/lib/state/ui-store';
 
 interface SettingsDrawerProps {
   onRestart: () => void;
@@ -20,6 +25,12 @@ const CAMERA_OPTIONS: Array<{ value: CameraMode; label: string }> = [
   { value: 'iso', label: 'Isometric' },
   { value: 'orbit', label: 'Free orbit' },
   { value: 'parallax', label: 'Parallax' },
+];
+
+const FOCAL_OPTIONS: Array<{ value: FocalPoint; label: string }> = [
+  { value: 'board', label: 'Board' },
+  { value: 'play-area', label: 'Play area' },
+  { value: 'active', label: 'Active player' },
 ];
 
 interface RangeRowProps {
@@ -73,6 +84,8 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setClockPresetName = useUiStore((s) => s.setClockPresetName);
   const cameraMode = useUiStore((s) => s.cameraMode);
   const setCameraMode = useUiStore((s) => s.setCameraMode);
+  const focalPoint = useUiStore((s) => s.focalPoint);
+  const setFocalPoint = useUiStore((s) => s.setFocalPoint);
   const parallaxX = useUiStore((s) => s.parallaxX);
   const setParallaxX = useUiStore((s) => s.setParallaxX);
   const parallaxY = useUiStore((s) => s.parallaxY);
@@ -140,6 +153,21 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
                   key={opt.value}
                   variant={cameraMode === opt.value ? 'default' : 'outline'}
                   onClick={() => setCameraMode(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Focal point</h3>
+            <div className="flex flex-wrap gap-2">
+              {FOCAL_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant={focalPoint === opt.value ? 'default' : 'outline'}
+                  onClick={() => setFocalPoint(opt.value)}
                 >
                   {opt.label}
                 </Button>

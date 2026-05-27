@@ -36,6 +36,9 @@ const MIN_PHI = Math.PI / 6;
 const MAX_PHI = Math.PI / 2.2;
 // Radians of orbit per pixel dragged in parallax mode.
 const DRAG_SPEED = 0.005;
+// Pointer must travel this far (px) after press before it counts as a drag —
+// otherwise a click would pop the camera.
+const DRAG_THRESHOLD = 6;
 
 interface CameraRigProps {
   mode: CameraMode;
@@ -55,7 +58,9 @@ export function CameraRig({ mode }: CameraRigProps) {
   // it so the follow re-centers on wherever you let go.
   const baseTheta = useRef(BASE_THETA);
   const basePhi = useRef(BASE_PHI);
+  const pressing = useRef(false);
   const dragging = useRef(false);
+  const pointerDownAt = useRef({ x: 0, y: 0 });
   const lastPointer = useRef({ x: 0, y: 0 });
 
   useGSAP(
@@ -99,24 +104,47 @@ export function CameraRig({ mode }: CameraRigProps) {
     const canvas = gl.domElement;
     const onDown = (e: PointerEvent) => {
       if (useUiStore.getState().drawerOpen) return;
-      dragging.current = true;
-      lastPointer.current = { x: e.clientX, y: e.clientY };
+      pressing.current = true;
+      dragging.current = false;
+      pointerDownAt.current = { x: e.clientX, y: e.clientY };
     };
     const onMove = (e: PointerEvent) => {
-      if (dragging.current) {
-        // Drag re-bases the orbit: pan azimuth/polar by the pointer delta.
-        const dx = e.clientX - lastPointer.current.x;
-        const dy = e.clientY - lastPointer.current.y;
-        lastPointer.current = { x: e.clientX, y: e.clientY };
-        baseTheta.current -= dx * DRAG_SPEED;
-        basePhi.current = Math.max(MIN_PHI, Math.min(MAX_PHI, basePhi.current - dy * DRAG_SPEED));
-      } else {
+      if (!pressing.current) {
+        // Hovering — cursor drives the parallax follow.
         const rect = canvas.getBoundingClientRect();
         parallaxCursor.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         parallaxCursor.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        return;
       }
+      if (!dragging.current) {
+        // Pressed but not yet past the threshold — treat as a potential click,
+        // hold the view steady (no pop).
+        const dx0 = e.clientX - pointerDownAt.current.x;
+        const dy0 = e.clientY - pointerDownAt.current.y;
+        if (dx0 * dx0 + dy0 * dy0 < DRAG_THRESHOLD * DRAG_THRESHOLD) return;
+        // Drag begins: fold the current cursor offset into the base so the
+        // camera doesn't jump, then zero the cursor.
+        const { parallaxX: px, parallaxY: py } = useUiStore.getState();
+        baseTheta.current += parallaxCursor.current.x * px * PARALLAX_ANGLE_SCALE;
+        basePhi.current = Math.max(
+          MIN_PHI,
+          Math.min(MAX_PHI, basePhi.current - parallaxCursor.current.y * py * PARALLAX_ANGLE_SCALE),
+        );
+        parallaxCursor.current.x = 0;
+        parallaxCursor.current.y = 0;
+        dragging.current = true;
+        lastPointer.current = { x: e.clientX, y: e.clientY };
+        return;
+      }
+      // Dragging: pan azimuth/polar by the pointer delta.
+      const dx = e.clientX - lastPointer.current.x;
+      const dy = e.clientY - lastPointer.current.y;
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+      baseTheta.current -= dx * DRAG_SPEED;
+      basePhi.current = Math.max(MIN_PHI, Math.min(MAX_PHI, basePhi.current - dy * DRAG_SPEED));
     };
     const onUp = () => {
+      pressing.current = false;
       dragging.current = false;
     };
     canvas.addEventListener('pointerdown', onDown);

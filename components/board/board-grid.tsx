@@ -13,9 +13,11 @@ export interface BoardGridProps {
   ghostPiece: number | null;
   winLine: readonly number[] | null;
   canPlace: boolean;
+  handoffPending: boolean;
   onSelectCell: (cell: number) => void;
   onConfirmPlace: () => void;
   onClearPendingPlace: () => void;
+  onDeselectHandoff: () => void;
 }
 
 function cellPosition(idx: number, pitch: number): [number, number, number] {
@@ -30,8 +32,10 @@ export function BoardGrid({
   ghostPiece,
   winLine,
   canPlace,
+  handoffPending,
   onSelectCell,
   onConfirmPlace,
+  onDeselectHandoff,
 }: BoardGridProps) {
   const { theme } = useTheme();
   const { cellPitch, cellSize } = theme.piece;
@@ -79,11 +83,13 @@ export function BoardGrid({
             isOnWinLine={isOnWinLine}
             winDecided={winCells.length > 0}
             canPlace={canPlace}
+            handoffPending={handoffPending}
             suppressPiece={flyingCell === idx}
             onHoverIn={() => setHoveredCell(idx)}
             onHoverOut={() => setHoveredCell((curr) => (curr === idx ? null : curr))}
             onClick={() => onSelectCell(idx)}
             onConfirmPlace={onConfirmPlace}
+            onDeselectHandoff={onDeselectHandoff}
           />
         );
       })}

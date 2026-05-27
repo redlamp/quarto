@@ -17,11 +17,13 @@ interface AnimatedBoardCellProps {
   isOnWinLine: boolean;
   winDecided: boolean;
   canPlace: boolean;
+  handoffPending: boolean;
   suppressPiece: boolean;
   onHoverIn: () => void;
   onHoverOut: () => void;
   onClick: () => void;
   onConfirmPlace: () => void;
+  onDeselectHandoff: () => void;
 }
 
 export function AnimatedBoardCell({
@@ -34,11 +36,13 @@ export function AnimatedBoardCell({
   isOnWinLine,
   winDecided,
   canPlace,
+  handoffPending,
   suppressPiece,
   onHoverIn,
   onHoverOut,
   onClick,
   onConfirmPlace,
+  onDeselectHandoff,
 }: AnimatedBoardCellProps) {
   const { theme } = useTheme();
   const filled = piece !== null;
@@ -58,9 +62,14 @@ export function AnimatedBoardCell({
 
   const handleClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    if (!canPlace || filled) return;
-    if (isPending) onConfirmPlace();
-    else onClick();
+    if (filled) return;
+    if (canPlace) {
+      if (isPending) onConfirmPlace();
+      else onClick();
+    } else if (handoffPending) {
+      // Pick stage with a piece queued to give: clicking the board cancels it.
+      onDeselectHandoff();
+    }
   };
 
   return (
@@ -78,7 +87,7 @@ export function AnimatedBoardCell({
       </mesh>
       {/* Pitch-sized hit mesh so adjacent cells touch — kills the pointer
           hiccup that happens when crossing the gap between visible tiles. */}
-      {!filled && canPlace && (
+      {!filled && (canPlace || handoffPending) && (
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}

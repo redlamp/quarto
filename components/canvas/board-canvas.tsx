@@ -110,9 +110,11 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           ghostPiece={handedPiece}
           winLine={winLine}
           canPlace={canPlace}
+          handoffPending={canPick && pendingHandoff !== null}
           onSelectCell={moves.selectCell}
           onConfirmPlace={moves.confirmPlace}
           onClearPendingPlace={moves.clearPendingPlace}
+          onDeselectHandoff={moves.clearPendingHandoff}
         />
         <PieceRack
           available={available}

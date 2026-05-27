@@ -53,6 +53,9 @@ export function CameraRig({ mode }: CameraRigProps) {
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
   const parallaxCursor = useRef({ x: 0, y: 0 });
+  // Screen point (normalized) that maps to zero cursor offset. Re-based to the
+  // pointer on drag release so the follow resumes from there without a jerk.
+  const cursorOrigin = useRef({ x: 0, y: 0 });
   const desiredPos = useRef(new Vector3());
   // Parallax orbit base — cursor offsets ride on top of this; dragging rewrites
   // it so the follow re-centers on wherever you let go.
@@ -88,12 +91,14 @@ export function CameraRig({ mode }: CameraRigProps) {
         camera.position.set(...preset.position);
         lookAtTarget.current.set(...preset.target);
       }
-      // Re-enter parallax at the standard framing.
+      // Re-enter parallax at the standard framing (cursor measured from center).
       if (mode === 'parallax') {
         baseTheta.current = BASE_THETA;
         basePhi.current = BASE_PHI;
         parallaxCursor.current.x = 0;
         parallaxCursor.current.y = 0;
+        cursorOrigin.current.x = 0;
+        cursorOrigin.current.y = 0;
       }
     },
     { dependencies: [mode, motion.cinematic, motion.reduced, camera] },
@@ -110,10 +115,13 @@ export function CameraRig({ mode }: CameraRigProps) {
     };
     const onMove = (e: PointerEvent) => {
       if (!pressing.current) {
-        // Hovering — cursor drives the parallax follow.
+        // Hovering — cursor drives the parallax follow, measured from the
+        // current origin (re-based on the last drag release) and clamped.
         const rect = canvas.getBoundingClientRect();
-        parallaxCursor.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        parallaxCursor.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        const rawX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const rawY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        parallaxCursor.current.x = Math.max(-1, Math.min(1, rawX - cursorOrigin.current.x));
+        parallaxCursor.current.y = Math.max(-1, Math.min(1, rawY - cursorOrigin.current.y));
         return;
       }
       if (!dragging.current) {
@@ -143,7 +151,17 @@ export function CameraRig({ mode }: CameraRigProps) {
       baseTheta.current -= dx * DRAG_SPEED;
       basePhi.current = Math.max(MIN_PHI, Math.min(MAX_PHI, basePhi.current - dy * DRAG_SPEED));
     };
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      // After a real drag, re-base the cursor origin to the release point so the
+      // parallax follow continues smoothly instead of snapping to the absolute
+      // mouse position.
+      if (dragging.current) {
+        const rect = canvas.getBoundingClientRect();
+        cursorOrigin.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        cursorOrigin.current.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        parallaxCursor.current.x = 0;
+        parallaxCursor.current.y = 0;
+      }
       pressing.current = false;
       dragging.current = false;
     };

@@ -29,6 +29,14 @@ const CLAY_ENV_INTENSITY = 0.35;
 const RADIAL_SEGMENTS = 48;
 const FILLET_SEGMENTS = 6;
 
+// Hollow plug: rounded rim to match the pieces, plus a metallic/low-roughness
+// finish + boosted env so it catches the light and reads at a glancing angle.
+const PLUG_FILLET = 0.02;
+const PLUG_METALNESS = 0.85;
+const PLUG_ROUGHNESS = 0.25;
+const PLUG_ENV_INTENSITY = 1.1;
+const PLUG_SINK = 0.005;
+
 // Lathe profile for a cylinder with quarter-arc fillets on both rims.
 // Side stays at full `radius`; only the top + bottom edges curve in.
 function roundedCylinderProfile(radius: number, height: number, fillet: number): Vector2[] {
@@ -72,6 +80,12 @@ export function PieceMesh({
     [p.radius, height],
   );
 
+  const hollowSizeXZ = t.square ? p.radius * 1.15 : p.radius * 0.6;
+  const plugProfile = useMemo(
+    () => roundedCylinderProfile(hollowSizeXZ, p.hollowDepth, PLUG_FILLET),
+    [hollowSizeXZ, p.hollowDepth],
+  );
+
   const renderClayMaterial = () => (
     <meshStandardMaterial
       color={color}
@@ -83,7 +97,16 @@ export function PieceMesh({
     />
   );
 
-  const hollowSizeXZ = t.square ? p.radius * 1.15 : p.radius * 0.6;
+  const renderPlugMaterial = () => (
+    <meshStandardMaterial
+      color={c.pieceHollowInset}
+      roughness={PLUG_ROUGHNESS}
+      metalness={PLUG_METALNESS}
+      envMapIntensity={PLUG_ENV_INTENSITY}
+      transparent={transparent}
+      opacity={opacity}
+    />
+  );
 
   return (
     <group {...handlers}>
@@ -111,23 +134,24 @@ export function PieceMesh({
           {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
         </mesh>
       )}
-      {t.hollow && (
-        <mesh position={[0, height + 0.001, 0]} receiveShadow {...raycastProp}>
-          {t.square ? (
-            <boxGeometry args={[hollowSizeXZ, p.hollowDepth, hollowSizeXZ]} />
-          ) : (
-            <cylinderGeometry args={[hollowSizeXZ, hollowSizeXZ, p.hollowDepth, 32]} />
-          )}
-          <meshStandardMaterial
-            color={c.pieceHollowInset}
-            roughness={0.95}
-            metalness={0}
-            envMapIntensity={CLAY_ENV_INTENSITY}
-            transparent={transparent}
-            opacity={opacity}
-          />
-        </mesh>
-      )}
+      {t.hollow &&
+        (t.square ? (
+          <RoundedBox
+            position={[0, height + p.hollowDepth / 2 - PLUG_SINK, 0]}
+            args={[hollowSizeXZ, p.hollowDepth, hollowSizeXZ]}
+            radius={PLUG_FILLET}
+            smoothness={4}
+            receiveShadow
+            {...raycastProp}
+          >
+            {renderPlugMaterial()}
+          </RoundedBox>
+        ) : (
+          <mesh position={[0, height - PLUG_SINK, 0]} receiveShadow {...raycastProp}>
+            <latheGeometry args={[plugProfile, RADIAL_SEGMENTS]} />
+            {renderPlugMaterial()}
+          </mesh>
+        ))}
     </group>
   );
 }

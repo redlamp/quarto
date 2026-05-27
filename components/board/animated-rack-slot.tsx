@@ -12,7 +12,7 @@ import { useHoverStore } from '@/lib/state/hover-store';
 import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
 
-const RAISE_Y = 0.6;
+const RAISE_Y = 0.3;
 const HOVER_LIFT_Y = 0.12;
 const BUTTON_BASE_OFFSET = 0.5;
 

@@ -17,7 +17,7 @@ export const generic: Theme = {
     fog: '#a8aeb6',
     pieceLight: '#e8ebef',
     pieceDark: '#1a1d23',
-    pieceHollowInset: '#0c0e12',
+    pieceHollowInset: '#82868d',
     accent: '#7d8a9e',
     selection: '#ff8a2a',
     winLine: '#f3e4c0',

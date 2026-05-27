@@ -12,6 +12,8 @@ function emptyState(): QuartoState {
     pendingHandoff: null,
     winner: null,
     draw: false,
+    timeoutLoser: null,
+    aborted: false,
   };
 }
 

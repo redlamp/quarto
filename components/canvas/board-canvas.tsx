@@ -67,10 +67,9 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
     <Canvas
       camera={{ position: CAMERA_PRESETS.orbit.position, fov: 42 }}
       shadows
-      onCreated={({ camera, scene }) => {
+      onCreated={({ camera }) => {
         const t = CAMERA_PRESETS[cameraMode].target;
         camera.lookAt(t[0], t[1], t[2]);
-        scene.environmentIntensity = 0.35;
       }}
     >
       <Suspense fallback={null}>
@@ -80,7 +79,12 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           intensity={lightingPreset.directional}
           castShadow
         />
-        {lightingPreset.environment && <Environment preset={lightingPreset.environment} />}
+        {/* Intensity is declarative so drei keeps it pinned — setting it
+            imperatively in onCreated got clobbered back to drei's default (1)
+            whenever the Environment subtree re-applied, washing out the scene. */}
+        {lightingPreset.environment && (
+          <Environment preset={lightingPreset.environment} environmentIntensity={0.35} />
+        )}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
           <planeGeometry args={[24, 24]} />
           <meshStandardMaterial

@@ -6,6 +6,8 @@ import { useTheme } from '@/lib/theme/context';
 import type { Piece } from '@/lib/game/pieces';
 
 const BUTTON_BASE_OFFSET = 0.5;
+// Click travel (px) above which the click is a camera drag, not a tap.
+const DESELECT_DRAG_PX = 6;
 
 interface AnimatedBoardCellProps {
   position: [number, number, number];
@@ -67,8 +69,10 @@ export function AnimatedBoardCell({
       if (isPending) onConfirmPlace();
       else onClick();
     } else if (handoffPending) {
-      // Pick stage with a piece queued to give: clicking the board cancels it.
-      onDeselectHandoff();
+      // Pick stage with a piece queued to give: a tap (not a camera drag) on
+      // the board cancels it.
+      const delta = (e as unknown as { delta?: number }).delta ?? 0;
+      if (delta <= DESELECT_DRAG_PX) onDeselectHandoff();
     }
   };
 

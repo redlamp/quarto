@@ -10,6 +10,7 @@ export interface PieceRackProps {
   canPick: boolean;
   onSelectPiece: (piece: Piece) => void;
   onConfirmHandoff: () => void;
+  onDeselectHandoff: () => void;
 }
 
 const ROWS = 4;
@@ -17,6 +18,8 @@ const COLS = 4;
 const PITCH = 0.7;
 const X_OFFSET = -3.6;
 const SLOT_SIZE = PITCH * 0.85;
+// Click travel (px) above which the click is treated as a camera drag, not a tap.
+const DESELECT_DRAG_PX = 6;
 
 function slotPosition(piece: Piece): [number, number, number] {
   const row = Math.floor(piece / COLS);
@@ -36,11 +39,23 @@ export function PieceRack({
   canPick,
   onSelectPiece,
   onConfirmHandoff,
+  onDeselectHandoff,
 }: PieceRackProps) {
   const { theme } = useTheme();
   return (
     <group position={[X_OFFSET, 0, 0]}>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+      {/* Rack surface doubles as a deselect target: a tap on empty rack space
+          (pieces stop propagation) cancels a pending give. Skip camera drags. */}
+      <mesh
+        receiveShadow
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -0.02, 0]}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.delta > DESELECT_DRAG_PX) return;
+          if (canPick && pendingHandoff !== null) onDeselectHandoff();
+        }}
+      >
         <planeGeometry args={[PITCH * COLS + 0.4, PITCH * ROWS + 0.4]} />
         <meshStandardMaterial
           color={theme.colors.rackSurface}

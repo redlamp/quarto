@@ -122,6 +122,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           canPick={canPick}
           onSelectPiece={moves.selectHandoff}
           onConfirmHandoff={moves.confirmHandoff}
+          onDeselectHandoff={moves.clearPendingHandoff}
         />
         <PlayerPedestal
           playerID="0"

@@ -44,8 +44,14 @@ interface CameraRigProps {
   mode: CameraMode;
 }
 
+interface OrbitLike {
+  update: () => void;
+  target: { set: (x: number, y: number, z: number) => void };
+}
+
 export function CameraRig({ mode }: CameraRigProps) {
   const { camera, gl } = useThree();
+  const controls = useThree((s) => s.controls) as OrbitLike | null;
   const motion = useMotion();
   const parallaxX = useUiStore((s) => s.parallaxX);
   const parallaxY = useUiStore((s) => s.parallaxY);
@@ -174,6 +180,49 @@ export function CameraRig({ mode }: CameraRigProps) {
       window.removeEventListener('pointerup', onUp);
     };
   }, [mode, gl]);
+
+  // Double-click returns the camera to the default player framing.
+  useEffect(() => {
+    if (mode !== 'orbit' && mode !== 'parallax') return;
+    const canvas = gl.domElement;
+    const onDbl = () => {
+      if (useUiStore.getState().drawerOpen) return;
+      if (mode === 'parallax') {
+        // Reset the orbit base + cursor; the per-frame follow eases home.
+        baseTheta.current = BASE_THETA;
+        basePhi.current = BASE_PHI;
+        parallaxCursor.current.x = 0;
+        parallaxCursor.current.y = 0;
+        cursorOrigin.current.x = 0;
+        cursorOrigin.current.y = 0;
+        pressing.current = false;
+        dragging.current = false;
+        return;
+      }
+      // Orbit: tween position back, keeping OrbitControls in sync.
+      const pos = CAMERA_PRESETS.orbit.position;
+      const tgt = CAMERA_PRESETS.orbit.target;
+      controls?.target.set(tgt[0], tgt[1], tgt[2]);
+      const dur = motion.reduced ? 0 : motion.cinematic;
+      if (dur > 0) {
+        gsap.to(camera.position, {
+          x: pos[0],
+          y: pos[1],
+          z: pos[2],
+          duration: dur,
+          ease: 'power2.inOut',
+          overwrite: 'auto',
+          onUpdate: () => controls?.update(),
+          onComplete: () => controls?.update(),
+        });
+      } else {
+        camera.position.set(pos[0], pos[1], pos[2]);
+        controls?.update();
+      }
+    };
+    canvas.addEventListener('dblclick', onDbl);
+    return () => canvas.removeEventListener('dblclick', onDbl);
+  }, [mode, gl, camera, controls, motion.reduced, motion.cinematic]);
 
   // Per-frame: orbit the camera around the board by cursor position, then
   // lookAt. OrbitControls owns the camera in orbit mode, so skip our lookAt

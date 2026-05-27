@@ -5,6 +5,7 @@ import { Vector2 } from 'three';
 import { Outlines, RoundedBox } from '@react-three/drei';
 import { traits, type Piece } from '@/lib/game/pieces';
 import { useTheme } from '@/lib/theme/context';
+import { getSoftNoiseTexture } from '@/lib/three/soft-noise-texture';
 
 interface PieceMeshProps {
   piece: Piece;
@@ -29,11 +30,13 @@ const CLAY_ENV_INTENSITY = 0.35;
 const RADIAL_SEGMENTS = 48;
 const FILLET_SEGMENTS = 6;
 
-// Hollow plug: rounded rim to match the pieces, plus a metallic/low-roughness
-// finish + boosted env so it catches the light and reads at a glancing angle.
+// Hollow plug ("gem"): rounded rim to match the pieces, plus a soft-touch
+// plastic finish — clearcoat for a glossy-but-not-mirror reflection over a
+// matte base, and a faint noise roughnessMap so it reads like device plastic.
 const PLUG_FILLET = 0.02;
-const PLUG_METALNESS = 0.85;
-const PLUG_ROUGHNESS = 0.25;
+const PLUG_ROUGHNESS = 0.55;
+const PLUG_CLEARCOAT = 1;
+const PLUG_CLEARCOAT_ROUGHNESS = 0.25;
 const PLUG_ENV_INTENSITY = 1.1;
 const PLUG_SINK = 0.005;
 
@@ -85,6 +88,7 @@ export function PieceMesh({
     () => roundedCylinderProfile(hollowSizeXZ, p.hollowDepth, PLUG_FILLET),
     [hollowSizeXZ, p.hollowDepth],
   );
+  const noiseMap = useMemo(() => getSoftNoiseTexture(), []);
 
   const renderClayMaterial = () => (
     <meshStandardMaterial
@@ -98,10 +102,13 @@ export function PieceMesh({
   );
 
   const renderPlugMaterial = () => (
-    <meshStandardMaterial
+    <meshPhysicalMaterial
       color={c.pieceHollowInset}
       roughness={PLUG_ROUGHNESS}
-      metalness={PLUG_METALNESS}
+      roughnessMap={noiseMap ?? undefined}
+      metalness={0}
+      clearcoat={PLUG_CLEARCOAT}
+      clearcoatRoughness={PLUG_CLEARCOAT_ROUGHNESS}
       envMapIntensity={PLUG_ENV_INTENSITY}
       transparent={transparent}
       opacity={opacity}

@@ -4,16 +4,12 @@ test('opponent picker toggles AI mode and persists across reloads', async ({ pag
   await page.goto('/');
   // Open settings.
   await page.getByRole('button', { name: /Open settings/i }).click();
-  // Switch to AI/Random.
-  await page.getByRole('button', { name: /AI — Random/i }).click();
+  // Switch to AI/Random via the Opponent dropdown.
+  await page.getByLabel('Opponent').selectOption('ai-random');
   // Reload — opponent should persist via localStorage.
   await page.reload();
   await page.getByRole('button', { name: /Open settings/i }).click();
-  const aiButton = page.getByRole('button', { name: /AI — Random/i });
-  await expect(aiButton).toBeVisible();
-  // Default (selected) buttons have the dark background; outline buttons are bordered.
-  // We assert the AI button is no longer outline (i.e., it's selected).
-  await expect(aiButton).not.toHaveClass(/border-/);
+  await expect(page.getByLabel('Opponent')).toHaveValue('ai-random');
 
   // Cleanup persisted state so other tests aren't affected.
   await context.clearCookies();

@@ -9,6 +9,7 @@ import {
   type CameraMode,
   type FocalPoint,
   type OpponentMode,
+  type UiTheme,
 } from '@/lib/state/ui-store';
 
 interface SettingsDrawerProps {
@@ -32,6 +33,64 @@ const FOCAL_OPTIONS: Array<{ value: FocalPoint; label: string }> = [
   { value: 'play-area', label: 'Play area' },
   { value: 'active', label: 'Active player' },
 ];
+
+const THEME_OPTIONS: Array<{ value: UiTheme; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3 border-b border-black/5 pb-5 last:border-0 last:pb-0">
+      <h3 className="text-xs tracking-wider text-slate-500 uppercase">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[var(--color-ink)]">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Select<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value as T)}
+      className="min-w-36 rounded-md border border-black/15 bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-ink)] outline-none"
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <Button variant={on ? 'default' : 'outline'} onClick={onToggle}>
+      {on ? 'On' : 'Off'}
+    </Button>
+  );
+}
 
 interface RangeRowProps {
   label: string;
@@ -77,8 +136,12 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const { theme, lightingPreset, motionPreset } = useTheme();
   const setLightingPresetName = useUiStore((s) => s.setLightingPresetName);
   const setMotionPresetName = useUiStore((s) => s.setMotionPresetName);
-  const lightingPresets = Object.values(theme.lighting);
-  const motionPresets = Object.values(theme.motion);
+  const lightingOptions = Object.values(theme.lighting).map((p) => ({
+    value: p.name,
+    label: p.label,
+  }));
+  const motionOptions = Object.values(theme.motion).map((p) => ({ value: p.name, label: p.label }));
+  const clockOptions = CLOCK_PRESETS.map((p) => ({ value: p.name, label: p.label }));
 
   const clockPresetName = useUiStore((s) => s.clockPresetName);
   const setClockPresetName = useUiStore((s) => s.setClockPresetName);
@@ -101,170 +164,109 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
           <SheetTitle>Settings</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 flex flex-col gap-6 text-sm">
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Opponent</h3>
-            <div className="flex gap-2">
-              {OPPONENT_OPTIONS.map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant={opponent === opt.value ? 'default' : 'outline'}
-                  onClick={() => setOpponent(opt.value)}
-                >
-                  {opt.label}
+        <div className="mt-6 flex flex-col gap-5 text-sm">
+          <Group title="Play">
+            <Field label="Opponent">
+              <Select
+                label="Opponent"
+                value={opponent}
+                options={OPPONENT_OPTIONS}
+                onChange={setOpponent}
+              />
+            </Field>
+            <Field label="Clock">
+              <Select
+                label="Clock"
+                value={clockPresetName}
+                options={clockOptions}
+                onChange={setClockPresetName}
+              />
+            </Field>
+            <Field label="Confirm step">
+              <Toggle on={confirmEnabled} onToggle={() => setConfirmEnabled(!confirmEnabled)} />
+            </Field>
+          </Group>
+
+          <Group title="Camera">
+            <Field label="Mode">
+              <Select
+                label="Camera mode"
+                value={cameraMode}
+                options={CAMERA_OPTIONS}
+                onChange={setCameraMode}
+              />
+            </Field>
+            <Field label="Focal point">
+              <Select
+                label="Focal point"
+                value={focalPoint}
+                options={FOCAL_OPTIONS}
+                onChange={setFocalPoint}
+              />
+            </Field>
+            <details className="rounded-md border border-black/10 px-3 py-2">
+              <summary className="cursor-pointer text-slate-500 select-none">
+                Parallax tuning
+              </summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <RangeRow
+                  label="Sway X"
+                  value={parallaxX}
+                  min={0}
+                  max={4}
+                  step={0.05}
+                  onChange={setParallaxX}
+                />
+                <RangeRow
+                  label="Sway Y"
+                  value={parallaxY}
+                  min={0}
+                  max={4}
+                  step={0.05}
+                  onChange={setParallaxY}
+                />
+                <RangeRow
+                  label="Smoothing"
+                  value={parallaxLerp}
+                  min={0.02}
+                  max={0.3}
+                  step={0.01}
+                  onChange={setParallaxLerp}
+                />
+                <Button variant="outline" onClick={resetParallax}>
+                  Reset parallax
                 </Button>
-              ))}
-            </div>
-          </section>
+              </div>
+            </details>
+          </Group>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Play</h3>
-            <Button
-              variant={confirmEnabled ? 'default' : 'outline'}
-              onClick={() => setConfirmEnabled(!confirmEnabled)}
-            >
-              Confirm step: {confirmEnabled ? 'on' : 'off'}
-            </Button>
-          </section>
+          <Group title="Appearance">
+            <Field label="Theme">
+              <Select label="Theme" value={uiTheme} options={THEME_OPTIONS} onChange={setUiTheme} />
+            </Field>
+            <Field label="Lighting">
+              <Select
+                label="Lighting"
+                value={lightingPreset.name}
+                options={lightingOptions}
+                onChange={setLightingPresetName}
+              />
+            </Field>
+            <Field label="Motion">
+              <Select
+                label="Motion"
+                value={motionPreset.name}
+                options={motionOptions}
+                onChange={setMotionPresetName}
+              />
+            </Field>
+          </Group>
 
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">UI theme</h3>
-            <div className="flex gap-2">
-              <Button
-                variant={uiTheme === 'light' ? 'default' : 'outline'}
-                onClick={() => setUiTheme('light')}
-              >
-                Light
-              </Button>
-              <Button
-                variant={uiTheme === 'dark' ? 'default' : 'outline'}
-                onClick={() => setUiTheme('dark')}
-              >
-                Dark
-              </Button>
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Camera</h3>
-            <div className="flex flex-wrap gap-2">
-              {CAMERA_OPTIONS.map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant={cameraMode === opt.value ? 'default' : 'outline'}
-                  onClick={() => setCameraMode(opt.value)}
-                >
-                  {opt.label}
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Focal point</h3>
-            <div className="flex flex-wrap gap-2">
-              {FOCAL_OPTIONS.map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant={focalPoint === opt.value ? 'default' : 'outline'}
-                  onClick={() => setFocalPoint(opt.value)}
-                >
-                  {opt.label}
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">
-              Parallax
-              {cameraMode !== 'parallax' && (
-                <span className="ml-2 normal-case opacity-60">(Parallax camera only)</span>
-              )}
-            </h3>
-            <RangeRow
-              label="Sway X"
-              value={parallaxX}
-              min={0}
-              max={4}
-              step={0.05}
-              onChange={setParallaxX}
-            />
-            <RangeRow
-              label="Sway Y"
-              value={parallaxY}
-              min={0}
-              max={4}
-              step={0.05}
-              onChange={setParallaxY}
-            />
-            <RangeRow
-              label="Smoothing"
-              value={parallaxLerp}
-              min={0.02}
-              max={0.3}
-              step={0.01}
-              onChange={setParallaxLerp}
-            />
-            <Button variant="outline" onClick={resetParallax}>
-              Reset parallax
-            </Button>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Lighting</h3>
-            <div className="flex flex-wrap gap-2">
-              {lightingPresets.map((preset) => (
-                <Button
-                  key={preset.name}
-                  variant={lightingPreset.name === preset.name ? 'default' : 'outline'}
-                  onClick={() => setLightingPresetName(preset.name)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Motion</h3>
-            <div className="flex flex-wrap gap-2">
-              {motionPresets.map((preset) => (
-                <Button
-                  key={preset.name}
-                  variant={motionPreset.name === preset.name ? 'default' : 'outline'}
-                  onClick={() => setMotionPresetName(preset.name)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Clock</h3>
-            <div className="flex flex-wrap gap-2">
-              {CLOCK_PRESETS.map((preset) => (
-                <Button
-                  key={preset.name}
-                  variant={clockPresetName === preset.name ? 'default' : 'outline'}
-                  onClick={() => setClockPresetName(preset.name)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h3 className="text-xs tracking-wider text-slate-500 uppercase">Audio</h3>
-            <Button
-              variant={soundEnabled ? 'default' : 'outline'}
-              onClick={() => setSoundEnabled(!soundEnabled)}
-            >
-              Sound: {soundEnabled ? 'on' : 'off'}
-            </Button>
-          </section>
+          <Group title="Audio">
+            <Field label="Sound">
+              <Toggle on={soundEnabled} onToggle={() => setSoundEnabled(!soundEnabled)} />
+            </Field>
+          </Group>
 
           <Button
             variant="outline"

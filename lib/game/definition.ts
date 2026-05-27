@@ -19,6 +19,10 @@ export interface QuartoState {
   pendingHandoff: Piece | null;
   winner: QuartoWinner | null;
   draw: boolean;
+  // Player who ran out of time (their opponent wins). Null unless a flag fell.
+  timeoutLoser: PlayerID | null;
+  // Flag fell before either player committed a move — voided, no result.
+  aborted: boolean;
 }
 
 export const STAGES = {
@@ -34,6 +38,8 @@ const initialState = (): QuartoState => ({
   pendingHandoff: null,
   winner: null,
   draw: false,
+  timeoutLoser: null,
+  aborted: false,
 });
 
 interface MoveCtx {
@@ -113,6 +119,18 @@ const callQuarto: Move<QuartoState> = (ctx) => {
   events.endGame();
 };
 
+const flagFall: Move<QuartoState> = (ctx) => {
+  const { G, ctx: gameCtx, events } = ctx as unknown as MoveCtx;
+  if (G.winner !== null || G.draw || G.timeoutLoser !== null || G.aborted) return INVALID_MOVE;
+  const anyProgress =
+    G.handedPiece !== null || G.available.length < 16 || G.board.some((c) => c !== null);
+  // Running out before either side commits a move voids the game (PRD: first-
+  // move timeout = abort). Otherwise the player on the clock loses.
+  if (!anyProgress) G.aborted = true;
+  else G.timeoutLoser = gameCtx.currentPlayer as PlayerID;
+  events.endGame();
+};
+
 export const Quarto: Game<QuartoState> = {
   name: 'quarto',
   setup: initialState,
@@ -120,10 +138,10 @@ export const Quarto: Game<QuartoState> = {
     activePlayers: { currentPlayer: STAGES.pick },
     stages: {
       [STAGES.place]: {
-        moves: { selectCell, clearPendingPlace, confirmPlace, callQuarto },
+        moves: { selectCell, clearPendingPlace, confirmPlace, callQuarto, flagFall },
       },
       [STAGES.pick]: {
-        moves: { selectHandoff, clearPendingHandoff, confirmHandoff, callQuarto },
+        moves: { selectHandoff, clearPendingHandoff, confirmHandoff, callQuarto, flagFall },
       },
     },
     onBegin: ({ G, events }) => {
@@ -138,6 +156,8 @@ export const Quarto: Game<QuartoState> = {
   },
   endIf: ({ G }) => {
     if (G.winner !== null) return { winner: G.winner.player };
+    if (G.timeoutLoser !== null) return { winner: G.timeoutLoser === '0' ? '1' : '0' };
+    if (G.aborted) return { aborted: true };
     if (G.draw) return { draw: true };
   },
   minPlayers: 2,

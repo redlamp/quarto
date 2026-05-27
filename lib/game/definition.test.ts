@@ -97,4 +97,27 @@ describe('Quarto game definition', () => {
     expect(state?.ctx.gameover).toBeUndefined();
     client.stop();
   });
+
+  it('flagFall on the opening turn aborts with no result', () => {
+    const { client, m } = newClient();
+    m.flagFall?.();
+    const state = client.getState();
+    expect(state?.G.aborted).toBe(true);
+    expect(state?.G.timeoutLoser).toBeNull();
+    expect(state?.G.winner).toBeNull();
+    expect(state?.ctx.gameover).toEqual({ aborted: true });
+    client.stop();
+  });
+
+  it('flagFall after a move is a loss for the player on the clock', () => {
+    const { client, m } = newClient();
+    m.selectHandoff?.(0b0001);
+    m.confirmHandoff?.();
+    m.flagFall?.();
+    const state = client.getState();
+    expect(state?.G.timeoutLoser).toBe('1');
+    expect(state?.G.aborted).toBe(false);
+    expect(state?.ctx.gameover).toEqual({ winner: '0' });
+    client.stop();
+  });
 });

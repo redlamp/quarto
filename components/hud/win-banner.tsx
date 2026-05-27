@@ -25,7 +25,25 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
   const gameover = state.ctx.gameover;
   if (!gameover) return null;
   const winner = state.G.winner;
+  const timeoutLoser = state.G.timeoutLoser;
+  const aborted = state.G.aborted;
   const draw = state.G.draw || gameover.draw;
+
+  const title = aborted
+    ? 'Game aborted'
+    : winner
+      ? `Player ${Number(winner.player) + 1} wins`
+      : timeoutLoser !== null
+        ? `Player ${timeoutLoser === '0' ? 2 : 1} wins on time`
+        : draw
+          ? 'Draw'
+          : 'Game over';
+
+  const subtitle = aborted
+    ? 'Ran out of time on the first move — no result.'
+    : winner && state.G.board[winner.line[0]] !== null
+      ? `Line shared: ${sharedAttributeLabel(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)}`
+      : null;
 
   // Float above the board near the top — no full-screen scrim, so the winning
   // line stays visible and the parallax camera keeps responding to the pointer.
@@ -33,15 +51,8 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
   return (
     <div className="pointer-events-none absolute top-0 right-0 left-0 z-30 flex justify-center px-4 pt-20">
       <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-xl bg-[var(--color-surface)]/85 px-8 py-5 text-center shadow-2xl backdrop-blur-md">
-        <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">
-          {winner ? `Player ${Number(winner.player) + 1} wins` : draw ? 'Draw' : 'Game over'}
-        </h2>
-        {winner && state.G.board[winner.line[0]] !== null && (
-          <p className="text-sm text-[var(--color-fog)]">
-            Line shared:{' '}
-            {sharedAttributeLabel(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)}
-          </p>
-        )}
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">{title}</h2>
+        {subtitle && <p className="text-sm text-[var(--color-fog)]">{subtitle}</p>}
         <Button onClick={onRestart} className="mt-1">
           Play again
         </Button>

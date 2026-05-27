@@ -13,6 +13,7 @@ interface QuartoMoves {
   clearPendingHandoff: () => void;
   confirmHandoff: () => void;
   callQuarto: () => void;
+  flagFall: () => void;
 }
 
 type ClientType = ReturnType<typeof Client<QuartoState>>;
@@ -58,6 +59,7 @@ export function useQuartoClient(): QuartoClient {
       clearPendingHandoff: () => m.clearPendingHandoff?.(),
       confirmHandoff: () => m.confirmHandoff?.(),
       callQuarto: () => m.callQuarto?.(),
+      flagFall: () => m.flagFall?.(),
     };
   }, [client]);
 

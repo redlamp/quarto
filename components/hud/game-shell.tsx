@@ -43,6 +43,26 @@ export function GameShell() {
   const clock = useClock(state);
   const clockOn = clock.mode === 'live';
 
+  // Flag-fall enforcement: when the player on the clock hits zero, end the game
+  // (the move resolves to a loss, or an abort if no move was committed yet). The
+  // AI never holds an active clock, so only a human can flag. Guarded so the
+  // move fires once per game.
+  const gameover = !!state?.ctx.gameover;
+  const flagged = useRef(false);
+  const activeMs = clock.active === '0' ? clock.p0Ms : clock.active === '1' ? clock.p1Ms : null;
+  const flagFall = moves.flagFall;
+  useEffect(() => {
+    if (gameover) {
+      flagged.current = false;
+      return;
+    }
+    if (!clockOn || activeMs === null) return;
+    if (activeMs <= 0 && !flagged.current) {
+      flagged.current = true;
+      flagFall();
+    }
+  }, [clockOn, activeMs, gameover, flagFall]);
+
   // Clear any stale hover highlight when the turn or stage shifts, so a piece
   // left "hovered" in a prior round doesn't reappear lit on re-entry.
   const clearHover = useHoverStore((s) => s.set);

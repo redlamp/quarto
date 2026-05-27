@@ -38,6 +38,7 @@ interface BoardCanvasProps {
 export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const { lightingPreset, theme } = useTheme();
   const cameraMode = useUiStore((s) => s.cameraMode);
+  const drawerOpen = useUiStore((s) => s.drawerOpen);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -126,7 +127,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
         <CameraRig mode={cameraMode} />
         <OrbitControls
           makeDefault
-          enabled={cameraMode === 'orbit'}
+          enabled={cameraMode === 'orbit' && !drawerOpen}
           target={CAMERA_PRESETS.orbit.target}
           enablePan={false}
           enableZoom

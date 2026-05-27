@@ -30,6 +30,7 @@ export function CameraRig({ mode }: CameraRigProps) {
   const parallaxX = useUiStore((s) => s.parallaxX);
   const parallaxY = useUiStore((s) => s.parallaxY);
   const parallaxLerp = useUiStore((s) => s.parallaxLerp);
+  const drawerOpen = useUiStore((s) => s.drawerOpen);
   const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
   const parallaxCursor = useRef({ x: 0, y: 0 });
   const parallaxBase = useRef(new Vector3(...CAMERA_PRESETS.parallax.position));
@@ -79,7 +80,7 @@ export function CameraRig({ mode }: CameraRigProps) {
   // Per-frame: apply parallax offset + lookAt. OrbitControls owns the camera
   // in orbit mode, so skip our manual lookAt there.
   useFrame(() => {
-    if (mode === 'parallax') {
+    if (mode === 'parallax' && !drawerOpen) {
       const target = parallaxBase.current.clone();
       target.x += parallaxCursor.current.x * parallaxX;
       target.y += parallaxCursor.current.y * parallaxY;

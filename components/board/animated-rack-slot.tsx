@@ -15,6 +15,8 @@ import type { Piece } from '@/lib/game/pieces';
 const RAISE_Y = 0.3;
 const HOVER_LIFT_Y = 0.12;
 const BUTTON_BASE_OFFSET = 0.5;
+// Click travel (px) above which the click is a camera drag, not a tap.
+const DESELECT_DRAG_PX = 6;
 
 interface AnimatedRackSlotProps {
   piece: Piece;
@@ -23,9 +25,11 @@ interface AnimatedRackSlotProps {
   showPiece: boolean;
   isPendingHandoff: boolean;
   canPick: boolean;
+  handoffPending: boolean;
   sweepDelay: number;
   onSelectPiece: () => void;
   onConfirmHandoff: () => void;
+  onDeselectHandoff: () => void;
 }
 
 export function AnimatedRackSlot({
@@ -35,9 +39,11 @@ export function AnimatedRackSlot({
   showPiece,
   isPendingHandoff,
   canPick,
+  handoffPending,
   sweepDelay,
   onSelectPiece,
   onConfirmHandoff,
+  onDeselectHandoff,
 }: AnimatedRackSlotProps) {
   const { theme } = useTheme();
   const motion = useMotion();
@@ -106,12 +112,20 @@ export function AnimatedRackSlot({
 
   const handleClick = (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    if (!canPick || !showPiece) return;
-    if (isPendingHandoff) {
-      onConfirmHandoff();
-    } else {
-      playSfx('piece-pick');
-      onSelectPiece();
+    if (!canPick) return;
+    if (showPiece) {
+      if (isPendingHandoff) {
+        onConfirmHandoff();
+      } else {
+        playSfx('piece-pick');
+        onSelectPiece();
+      }
+      return;
+    }
+    // Empty slot: a tap (not a camera drag) cancels a pending give.
+    if (handoffPending) {
+      const delta = (e as unknown as { delta?: number }).delta ?? 0;
+      if (delta <= DESELECT_DRAG_PX) onDeselectHandoff();
     }
   };
 

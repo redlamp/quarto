@@ -78,9 +78,11 @@ export function PieceRack({
             showPiece={showPiece}
             isPendingHandoff={isPendingHandoff}
             canPick={canPick}
+            handoffPending={canPick && pendingHandoff !== null}
             sweepDelay={sweepDelay}
             onSelectPiece={() => onSelectPiece(piece)}
             onConfirmHandoff={onConfirmHandoff}
+            onDeselectHandoff={onDeselectHandoff}
           />
         );
       })}

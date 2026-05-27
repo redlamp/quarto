@@ -22,6 +22,35 @@ const CAMERA_OPTIONS: Array<{ value: CameraMode; label: string }> = [
   { value: 'parallax', label: 'Parallax' },
 ];
 
+interface RangeRowProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (n: number) => void;
+}
+
+function RangeRow({ label, value, min, max, step, onChange }: RangeRowProps) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="flex justify-between">
+        <span>{label}</span>
+        <span className="text-slate-500 tabular-nums">{value.toFixed(2)}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="accent-[var(--color-selection)]"
+      />
+    </label>
+  );
+}
+
 export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const isOpen = useUiStore((s) => s.drawerOpen);
   const setOpen = useUiStore((s) => s.setDrawer);
@@ -44,6 +73,12 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const setClockPresetName = useUiStore((s) => s.setClockPresetName);
   const cameraMode = useUiStore((s) => s.cameraMode);
   const setCameraMode = useUiStore((s) => s.setCameraMode);
+  const parallaxX = useUiStore((s) => s.parallaxX);
+  const setParallaxX = useUiStore((s) => s.setParallaxX);
+  const parallaxY = useUiStore((s) => s.parallaxY);
+  const setParallaxY = useUiStore((s) => s.setParallaxY);
+  const parallaxLerp = useUiStore((s) => s.parallaxLerp);
+  const setParallaxLerp = useUiStore((s) => s.setParallaxLerp);
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -109,6 +144,39 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
                 </Button>
               ))}
             </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h3 className="text-xs tracking-wider text-slate-500 uppercase">
+              Parallax
+              {cameraMode !== 'parallax' && (
+                <span className="ml-2 normal-case opacity-60">(Parallax camera only)</span>
+              )}
+            </h3>
+            <RangeRow
+              label="Sway X"
+              value={parallaxX}
+              min={0}
+              max={4}
+              step={0.05}
+              onChange={setParallaxX}
+            />
+            <RangeRow
+              label="Sway Y"
+              value={parallaxY}
+              min={0}
+              max={4}
+              step={0.05}
+              onChange={setParallaxY}
+            />
+            <RangeRow
+              label="Smoothing"
+              value={parallaxLerp}
+              min={0.02}
+              max={0.3}
+              step={0.01}
+              onChange={setParallaxLerp}
+            />
           </section>
 
           <section className="flex flex-col gap-2">

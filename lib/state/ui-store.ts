@@ -36,6 +36,15 @@ interface UiState {
   cameraMode: CameraMode;
   setCameraMode: (mode: CameraMode) => void;
 
+  // Parallax camera tuning: cursor-driven sway magnitudes (world units) + the
+  // per-frame lerp factor that smooths the follow.
+  parallaxX: number;
+  setParallaxX: (n: number) => void;
+  parallaxY: number;
+  setParallaxY: (n: number) => void;
+  parallaxLerp: number;
+  setParallaxLerp: (n: number) => void;
+
   uiTheme: UiTheme;
   setUiTheme: (t: UiTheme) => void;
   toggleUiTheme: () => void;
@@ -73,6 +82,13 @@ export const useUiStore = create<UiState>()(
       cameraMode: 'orbit',
       setCameraMode: (mode) => set({ cameraMode: mode }),
 
+      parallaxX: 1.6,
+      setParallaxX: (n) => set({ parallaxX: n }),
+      parallaxY: 1.0,
+      setParallaxY: (n) => set({ parallaxY: n }),
+      parallaxLerp: 0.1,
+      setParallaxLerp: (n) => set({ parallaxLerp: n }),
+
       uiTheme: 'light',
       setUiTheme: (t) => set({ uiTheme: t }),
       toggleUiTheme: () => set((s) => ({ uiTheme: s.uiTheme === 'light' ? 'dark' : 'light' })),
@@ -89,6 +105,9 @@ export const useUiStore = create<UiState>()(
         confirmEnabled: s.confirmEnabled,
         clockPresetName: s.clockPresetName,
         cameraMode: s.cameraMode,
+        parallaxX: s.parallaxX,
+        parallaxY: s.parallaxY,
+        parallaxLerp: s.parallaxLerp,
         uiTheme: s.uiTheme,
       }),
     },

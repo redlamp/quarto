@@ -6,7 +6,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import gsap from 'gsap';
 import { Vector3 } from 'three';
 import { useMotion } from '@/lib/motion/use-motion';
-import type { CameraMode } from '@/lib/state/ui-store';
+import { useUiStore, type CameraMode } from '@/lib/state/ui-store';
 
 interface CameraPreset {
   position: [number, number, number];
@@ -20,9 +20,6 @@ export const CAMERA_PRESETS: Record<CameraMode, CameraPreset> = {
   parallax: { position: [-3, 7.5, 7.5], target: [-1, 0, 0] },
 };
 
-const PARALLAX_XY_MAGNITUDE = { x: 0.7, y: 0.45 };
-const PARALLAX_LERP = 0.08;
-
 interface CameraRigProps {
   mode: CameraMode;
 }
@@ -30,6 +27,9 @@ interface CameraRigProps {
 export function CameraRig({ mode }: CameraRigProps) {
   const { camera, gl } = useThree();
   const motion = useMotion();
+  const parallaxX = useUiStore((s) => s.parallaxX);
+  const parallaxY = useUiStore((s) => s.parallaxY);
+  const parallaxLerp = useUiStore((s) => s.parallaxLerp);
   const lookAtTarget = useRef(new Vector3(...CAMERA_PRESETS[mode].target));
   const parallaxCursor = useRef({ x: 0, y: 0 });
   const parallaxBase = useRef(new Vector3(...CAMERA_PRESETS.parallax.position));
@@ -81,9 +81,9 @@ export function CameraRig({ mode }: CameraRigProps) {
   useFrame(() => {
     if (mode === 'parallax') {
       const target = parallaxBase.current.clone();
-      target.x += parallaxCursor.current.x * PARALLAX_XY_MAGNITUDE.x;
-      target.y += parallaxCursor.current.y * PARALLAX_XY_MAGNITUDE.y;
-      camera.position.lerp(target, PARALLAX_LERP);
+      target.x += parallaxCursor.current.x * parallaxX;
+      target.y += parallaxCursor.current.y * parallaxY;
+      camera.position.lerp(target, parallaxLerp);
     }
     if (mode !== 'orbit') {
       camera.lookAt(lookAtTarget.current);

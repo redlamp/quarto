@@ -13,8 +13,9 @@ interface PlayerPedestalProps {
 
 // P0 sits at +z (front), P1 at -z (back).
 const Z_BY_PLAYER: Record<'0' | '1', number> = { '0': 2.7, '1': -2.7 };
-const PAD_SIZE = 0.95;
+const PAD_RADIUS = 0.5;
 const HIGHLIGHT_INSET = 0.08;
+const PAD_SEGMENTS = 48;
 
 export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalProps) {
   const { theme } = useTheme();
@@ -30,7 +31,7 @@ export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalP
     <group position={[0, 0, z]}>
       {/* Base pad. */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[PAD_SIZE, PAD_SIZE]} />
+        <circleGeometry args={[PAD_RADIUS, PAD_SEGMENTS]} />
         <meshStandardMaterial
           color={highlighted ? highlightColor : baseColor}
           roughness={0.9}
@@ -42,7 +43,7 @@ export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalP
       </mesh>
       {/* Inner pad — gives a ring effect when highlighted. */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]}>
-        <planeGeometry args={[PAD_SIZE - HIGHLIGHT_INSET, PAD_SIZE - HIGHLIGHT_INSET]} />
+        <circleGeometry args={[PAD_RADIUS - HIGHLIGHT_INSET / 2, PAD_SEGMENTS]} />
         <meshStandardMaterial
           color={baseColor}
           roughness={0.9}

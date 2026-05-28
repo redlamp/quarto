@@ -52,56 +52,58 @@ export function BottomHud({ state, moves }: BottomHudProps) {
   const attrLines = activeLabel ? activeLabel.split(' ') : null;
 
   return (
-    <div className="absolute right-0 bottom-0 left-0 z-10 flex items-end justify-center gap-4 px-6 py-6">
-      <div className="flex h-24 w-24 flex-col items-center justify-center gap-0.5 rounded-md bg-[var(--color-surface-muted)] font-mono text-xs leading-tight text-[var(--color-ink)] capitalize">
+    <div className="absolute right-0 bottom-0 left-0 z-10 flex flex-col items-center gap-3 px-6 py-6">
+      <div className="grid w-full max-w-md grid-cols-4 gap-2 rounded-md bg-[var(--color-surface-muted)] px-4 py-3 font-mono text-xs text-[var(--color-ink)] capitalize">
         {attrLines ? (
           attrLines.map((part) => (
-            <span key={part} className="block">
+            <span key={part} className="text-center">
               {part}
             </span>
           ))
         ) : (
-          <span className="text-[var(--color-fog)]">—</span>
+          <span className="col-span-4 text-center text-[var(--color-fog)]">—</span>
         )}
       </div>
 
-      {canConfirmPlace && (
-        <>
-          <Button variant="outline" onClick={moves.clearPendingPlace}>
-            Cancel
-          </Button>
-          <Button onClick={moves.confirmPlace} className="confirm-pulse">
-            Confirm place
-          </Button>
-        </>
-      )}
-      {canConfirmHandoff && (
-        <>
-          <Button variant="outline" onClick={moves.clearPendingHandoff}>
-            Cancel
-          </Button>
-          <Button onClick={moves.confirmHandoff} className="confirm-pulse">
-            Confirm pass
-          </Button>
-        </>
-      )}
+      <div className="flex items-center gap-4">
+        {canConfirmPlace && (
+          <>
+            <Button variant="outline" onClick={moves.clearPendingPlace}>
+              Cancel
+            </Button>
+            <Button onClick={moves.confirmPlace} className="confirm-pulse">
+              Confirm place
+            </Button>
+          </>
+        )}
+        {canConfirmHandoff && (
+          <>
+            <Button variant="outline" onClick={moves.clearPendingHandoff}>
+              Cancel
+            </Button>
+            <Button onClick={moves.confirmHandoff} className="confirm-pulse">
+              Confirm pass
+            </Button>
+          </>
+        )}
 
-      {canCallQuarto ? (
-        <button
-          type="button"
-          onClick={() => {
-            playSfx('quarto-call');
-            moves.callQuarto();
-          }}
-          className="quarto-glow rounded-xl border-2 border-white/60 bg-[#c9a866] px-10 py-5 text-xl font-bold tracking-widest text-[#1e2128] uppercase shadow-2xl"
-        >
-          Quarto!
-        </button>
-      ) : (
-        <Button variant="outline" disabled>
-          Quarto!
-        </Button>
-      )}
+        {canCallQuarto ? (
+          <button
+            type="button"
+            onClick={() => {
+              playSfx('quarto-call');
+              moves.callQuarto();
+            }}
+            className="quarto-glow rounded-xl border-2 border-white/60 bg-[#c9a866] px-10 py-5 text-xl font-bold tracking-widest text-[#1e2128] uppercase shadow-2xl"
+          >
+            Quarto!
+          </button>
+        ) : (
+          <Button variant="outline" disabled>
+            Quarto!
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -50,7 +50,13 @@ export function BottomHud({ state, moves }: BottomHudProps) {
 
   const hoverLabel = hoveredPiece !== null ? describe(hoveredPiece) : null;
   const stageLabel = stage === 'place' ? handedLabel : stage === 'pick' ? handoffLabel : null;
-  const activeLabel = hoverLabel ?? stageLabel;
+  // When a winning line exists, fall back to a piece from that line so the
+  // detail panel shows the shared trait pills even with no hover/stage piece.
+  const winLineLabel =
+    winInfo && G && G.board[winInfo.cells[0]!] !== null
+      ? describe(G.board[winInfo.cells[0]!]!)
+      : null;
+  const activeLabel = hoverLabel ?? stageLabel ?? winLineLabel;
   const attrLines = activeLabel ? activeLabel.split(' ') : null;
 
   return (

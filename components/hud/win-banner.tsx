@@ -9,7 +9,7 @@ interface WinBannerProps {
   onRestart: () => void;
 }
 
-function sharedAttributeLabel(mask: number, samplePiece: number): string {
+function sharedAttributeLabels(mask: number, samplePiece: number): string[] {
   const parts: string[] = [];
   for (const name of ATTR_NAMES) {
     const bit = ATTR[name as AttrName];
@@ -17,7 +17,7 @@ function sharedAttributeLabel(mask: number, samplePiece: number): string {
     const valueIndex = (samplePiece & bit) === 0 ? 0 : 1;
     parts.push(ATTR_VALUE_LABELS[name as AttrName][valueIndex]);
   }
-  return parts.length ? parts.join(', ') : '';
+  return parts;
 }
 
 export function WinBanner({ state, onRestart }: WinBannerProps) {
@@ -39,21 +39,37 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
           ? 'Draw'
           : 'Game over';
 
-  const subtitle = aborted
-    ? 'Ran out of time on the first move — no result.'
-    : winner && state.G.board[winner.line[0]] !== null
-      ? `Line shared: ${sharedAttributeLabel(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)}`
-      : null;
+  const subtitle = aborted ? 'Ran out of time on the first move — no result.' : null;
+
+  const sharedTraits =
+    winner && state.G.board[winner.line[0]] !== null
+      ? sharedAttributeLabels(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)
+      : [];
 
   // Float above the board near the top — no full-screen scrim, so the winning
   // line stays visible and the parallax camera keeps responding to the pointer.
   // pointer-events pass through except over the card itself.
   return (
     <div className="pointer-events-none absolute top-0 right-0 left-0 z-30 flex justify-center px-4 pt-20">
-      <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-xl bg-[var(--color-surface)]/85 px-8 py-5 text-center shadow-2xl backdrop-blur-md">
-        <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">{title}</h2>
-        {subtitle && <p className="text-sm text-[var(--color-fog)]">{subtitle}</p>}
-        <Button onClick={onRestart} className="mt-1">
+      <div className="border-border bg-popover text-popover-foreground pointer-events-auto flex flex-col items-center gap-4 rounded-xl border px-8 py-6 text-center shadow-2xl">
+        <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
+        {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
+        {sharedTraits.length > 0 && (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-muted-foreground text-xs tracking-wider uppercase">Line shared</p>
+            <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-sm capitalize">
+              {sharedTraits.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md bg-amber-300 px-3 py-1 font-bold text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_0_1px_rgba(180,120,30,0.5)]"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <Button size="lg" onClick={onRestart}>
           Play again
         </Button>
       </div>

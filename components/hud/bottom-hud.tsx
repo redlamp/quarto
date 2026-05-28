@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { findWin } from '@/lib/game/win';
-import { describe } from '@/lib/game/pieces';
+import { ATTR, ATTR_NAMES, describe } from '@/lib/game/pieces';
 import { useSfx } from '@/hooks/use-sfx';
 import { useHoverStore } from '@/lib/state/hover-store';
 import type { QuartoState } from '@/lib/game/definition';
@@ -31,7 +31,9 @@ export function BottomHud({ state, moves }: BottomHudProps) {
   const hoveredPiece = useHoverStore((s) => s.piece);
   const G = state?.G;
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
-  const winAvailable = useMemo(() => (G ? findWin(G.board) !== null : false), [G]);
+  const winInfo = useMemo(() => (G ? findWin(G.board) : null), [G]);
+  const winAvailable = winInfo !== null;
+  const sharedMask = G?.winner?.sharedMask ?? winInfo?.sharedMask ?? 0;
   const isGameOver = !!state?.ctx.gameover;
   const hasPendingPlace = G?.pendingPlace !== null && G?.pendingPlace !== undefined;
   const hasPendingHandoff = G?.pendingHandoff !== null && G?.pendingHandoff !== undefined;
@@ -53,26 +55,6 @@ export function BottomHud({ state, moves }: BottomHudProps) {
 
   return (
     <div className="absolute right-0 bottom-0 left-0 z-10 flex flex-col items-center gap-3 px-6 py-6">
-      {/* Faux-3D plate: top-light gradient + inset highlight/shadow + ring,
-          so the bar reads as a brushed grey surface catching overhead light. */}
-      <div
-        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
-        style={{
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
-        }}
-      >
-        {attrLines ? (
-          attrLines.map((part) => (
-            <span key={part} className="text-center">
-              {part}
-            </span>
-          ))
-        ) : (
-          <span className="col-span-4 text-center text-slate-500">—</span>
-        )}
-      </div>
-
       <div className="flex items-center gap-4">
         {canConfirmPlace && (
           <>
@@ -110,6 +92,43 @@ export function BottomHud({ state, moves }: BottomHudProps) {
           <Button size="lg" variant="outline" disabled>
             Quarto!
           </Button>
+        )}
+      </div>
+
+      {/* Faux-3D plate: top-light gradient + inset highlight/shadow + ring,
+          so the bar reads as a brushed grey surface catching overhead light.
+          Attrs that match the current winning line's sharedMask glow. */}
+      <div
+        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
+        style={{
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
+        }}
+      >
+        {attrLines ? (
+          attrLines.map((part, i) => {
+            const attr = ATTR_NAMES[i];
+            const isShared = attr !== undefined && (sharedMask & ATTR[attr]) !== 0;
+            return (
+              <span
+                key={part}
+                className={
+                  isShared
+                    ? 'rounded text-center font-bold text-[var(--color-winLine-emissive,#c9a866)]'
+                    : 'text-center'
+                }
+                style={
+                  isShared
+                    ? { color: '#a87b1f', textShadow: '0 0 6px rgba(201,168,102,0.5)' }
+                    : undefined
+                }
+              >
+                {part}
+              </span>
+            );
+          })
+        ) : (
+          <span className="col-span-4 text-center text-slate-500">—</span>
         )}
       </div>
     </div>

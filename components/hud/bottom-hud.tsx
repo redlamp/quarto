@@ -114,13 +114,8 @@ export function BottomHud({ state, moves }: BottomHudProps) {
                 key={part}
                 className={
                   isShared
-                    ? 'rounded text-center font-bold text-[var(--color-winLine-emissive,#c9a866)]'
+                    ? 'rounded-md bg-amber-300 px-2 py-1 text-center font-bold text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_0_1px_rgba(180,120,30,0.5)]'
                     : 'text-center'
-                }
-                style={
-                  isShared
-                    ? { color: '#a87b1f', textShadow: '0 0 6px rgba(201,168,102,0.5)' }
-                    : undefined
                 }
               >
                 {part}

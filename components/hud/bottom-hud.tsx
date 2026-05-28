@@ -53,7 +53,15 @@ export function BottomHud({ state, moves }: BottomHudProps) {
 
   return (
     <div className="absolute right-0 bottom-0 left-0 z-10 flex flex-col items-center gap-3 px-6 py-6">
-      <div className="grid w-full max-w-md grid-cols-4 gap-2 rounded-md bg-[var(--color-surface-muted)] px-4 py-3 font-mono text-xs text-[var(--color-ink)] capitalize">
+      {/* Faux-3D plate: top-light gradient + inset highlight/shadow + ring,
+          so the bar reads as a brushed grey surface catching overhead light. */}
+      <div
+        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-3 font-mono text-xs text-slate-900 capitalize ring-1 ring-slate-500/30"
+        style={{
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
+        }}
+      >
         {attrLines ? (
           attrLines.map((part) => (
             <span key={part} className="text-center">
@@ -61,7 +69,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
             </span>
           ))
         ) : (
-          <span className="col-span-4 text-center text-[var(--color-fog)]">—</span>
+          <span className="col-span-4 text-center text-slate-500">—</span>
         )}
       </div>
 

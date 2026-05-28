@@ -2,7 +2,7 @@
 
 import { Canvas } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import { BoardGrid } from '@/components/board/board-grid';
 import { PieceRack } from '@/components/board/piece-rack';
 import { PlayerPedestal } from '@/components/board/player-pedestal';
@@ -40,6 +40,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const cameraMode = useUiStore((s) => s.cameraMode);
   const focalPoint = useUiStore((s) => s.focalPoint);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
+  const confirmEnabled = useUiStore((s) => s.confirmEnabled);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -64,6 +65,22 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const winLine = useMemo(() => {
     return state?.ctx.gameover && winner ? winner.line : null;
   }, [state?.ctx.gameover, winner]);
+
+  // Confirm step off => single-click commits (skip the Give/Place button).
+  const handleSelectPiece = useCallback(
+    (piece: Piece) => {
+      moves.selectHandoff(piece);
+      if (!confirmEnabled) moves.confirmHandoff();
+    },
+    [moves, confirmEnabled],
+  );
+  const handleSelectCell = useCallback(
+    (cell: number) => {
+      moves.selectCell(cell);
+      if (!confirmEnabled) moves.confirmPlace();
+    },
+    [moves, confirmEnabled],
+  );
 
   // Camera focal point (orbit center + lookAt). 'active' biases toward the
   // current player's side of the board (P0 front +z, P1 back -z).
@@ -120,7 +137,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           winLine={winLine}
           canPlace={canPlace}
           handoffPending={canPick && pendingHandoff !== null}
-          onSelectCell={moves.selectCell}
+          onSelectCell={handleSelectCell}
           onConfirmPlace={moves.confirmPlace}
           onClearPendingPlace={moves.clearPendingPlace}
           onDeselectHandoff={moves.clearPendingHandoff}
@@ -129,7 +146,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           available={available}
           pendingHandoff={pendingHandoff}
           canPick={canPick}
-          onSelectPiece={moves.selectHandoff}
+          onSelectPiece={handleSelectPiece}
           onConfirmHandoff={moves.confirmHandoff}
           onDeselectHandoff={moves.clearPendingHandoff}
         />

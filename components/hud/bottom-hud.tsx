@@ -56,7 +56,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
       {/* Faux-3D plate: top-light gradient + inset highlight/shadow + ring,
           so the bar reads as a brushed grey surface catching overhead light. */}
       <div
-        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-3 font-mono text-xs text-slate-900 capitalize ring-1 ring-slate-500/30"
+        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
         style={{
           boxShadow:
             'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
@@ -76,20 +76,20 @@ export function BottomHud({ state, moves }: BottomHudProps) {
       <div className="flex items-center gap-4">
         {canConfirmPlace && (
           <>
-            <Button variant="outline" onClick={moves.clearPendingPlace}>
+            <Button size="lg" variant="outline" onClick={moves.clearPendingPlace}>
               Cancel
             </Button>
-            <Button onClick={moves.confirmPlace} className="confirm-pulse">
+            <Button size="lg" onClick={moves.confirmPlace} className="confirm-pulse">
               Confirm place
             </Button>
           </>
         )}
         {canConfirmHandoff && (
           <>
-            <Button variant="outline" onClick={moves.clearPendingHandoff}>
+            <Button size="lg" variant="outline" onClick={moves.clearPendingHandoff}>
               Cancel
             </Button>
-            <Button onClick={moves.confirmHandoff} className="confirm-pulse">
+            <Button size="lg" onClick={moves.confirmHandoff} className="confirm-pulse">
               Confirm pass
             </Button>
           </>
@@ -107,7 +107,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
             Quarto!
           </button>
         ) : (
-          <Button variant="outline" disabled>
+          <Button size="lg" variant="outline" disabled>
             Quarto!
           </Button>
         )}

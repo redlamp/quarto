@@ -9,6 +9,27 @@
   --color-slate: oklch(0.55 0.02 247);
   --color-snow: oklch(0.99 0.002 247);
   --color-accent: oklch(0.65 0.04 247);
+
+  /* shadcn token aliases mapped to the project palette so primitives
+     (Select / Switch / Label / etc.) render with our colors. */
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-ink);
+  --color-primary-foreground: var(--color-surface);
+  --color-secondary: var(--color-surface-muted);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-surface-muted);
+  --color-muted-foreground: var(--color-fog);
+  --color-accent-foreground: var(--color-surface);
+  --color-destructive: oklch(0.6 0.2 25);
+  --color-destructive-foreground: oklch(0.99 0.002 247);
+  --color-border: oklch(0.85 0.01 247);
+  --color-input: oklch(0.88 0.01 247);
+  --color-ring: var(--color-accent);
 }
 
 html.dark {
@@ -19,6 +40,9 @@ html.dark {
   --color-slate: oklch(0.72 0.02 247);
   --color-snow: oklch(0.22 0.02 247);
   --color-accent: oklch(0.72 0.05 247);
+
+  --color-border: oklch(0.35 0.02 247);
+  --color-input: oklch(0.32 0.02 247);
 }
 
 html,

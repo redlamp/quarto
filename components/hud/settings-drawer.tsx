@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -275,17 +286,30 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
             </Field>
           </Group>
 
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (window.confirm('Restart the game?')) {
-                onRestart();
-                setOpen(false);
-              }
-            }}
-          >
-            Restart game
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">Restart game</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restart the game?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Current board state will be discarded.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onRestart();
+                    setOpen(false);
+                  }}
+                >
+                  Restart
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </SheetContent>
     </Sheet>

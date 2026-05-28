@@ -4,12 +4,13 @@ test('opponent picker toggles AI mode and persists across reloads', async ({ pag
   await page.goto('/');
   // Open settings.
   await page.getByRole('button', { name: /Open settings/i }).click();
-  // Switch to AI/Random via the Opponent dropdown.
-  await page.getByLabel('Opponent').selectOption('ai-random');
+  // Switch to AI/Random via the Opponent dropdown (shadcn/Radix Select).
+  await page.getByLabel('Opponent').click();
+  await page.getByRole('option', { name: 'AI — Random' }).click();
   // Reload — opponent should persist via localStorage.
   await page.reload();
   await page.getByRole('button', { name: /Open settings/i }).click();
-  await expect(page.getByLabel('Opponent')).toHaveValue('ai-random');
+  await expect(page.getByLabel('Opponent')).toContainText('AI — Random');
 
   // Cleanup persisted state so other tests aren't affected.
   await context.clearCookies();

@@ -2,6 +2,15 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
 import {
@@ -15,6 +24,8 @@ import {
 interface SettingsDrawerProps {
   onRestart: () => void;
 }
+
+const SELECT_TRIGGER_W = 'w-40';
 
 const OPPONENT_OPTIONS: Array<{ value: OpponentMode; label: string }> = [
   { value: 'hot-seat', label: 'Hot-seat' },
@@ -51,13 +62,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-[var(--color-ink)]">{label}</span>
+      <Label className="text-[var(--color-ink)]">{label}</Label>
       {children}
     </div>
   );
 }
 
-function Select<T extends string>({
+function Picker<T extends string>({
   label,
   value,
   options,
@@ -69,26 +80,18 @@ function Select<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value as T)}
-      className="min-w-36 rounded-md border border-black/15 bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-ink)] outline-none"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <Button variant={on ? 'default' : 'outline'} onClick={onToggle}>
-      {on ? 'On' : 'Off'}
-    </Button>
+    <Select value={value} onValueChange={(v) => onChange(v as T)}>
+      <SelectTrigger aria-label={label} className={SELECT_TRIGGER_W}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -167,7 +170,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
         <div className="mt-6 flex flex-col gap-5 text-sm">
           <Group title="Play">
             <Field label="Opponent">
-              <Select
+              <Picker
                 label="Opponent"
                 value={opponent}
                 options={OPPONENT_OPTIONS}
@@ -175,7 +178,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               />
             </Field>
             <Field label="Clock">
-              <Select
+              <Picker
                 label="Clock"
                 value={clockPresetName}
                 options={clockOptions}
@@ -183,13 +186,17 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               />
             </Field>
             <Field label="Confirm step">
-              <Toggle on={confirmEnabled} onToggle={() => setConfirmEnabled(!confirmEnabled)} />
+              <Switch
+                aria-label="Confirm step"
+                checked={confirmEnabled}
+                onCheckedChange={setConfirmEnabled}
+              />
             </Field>
           </Group>
 
           <Group title="Camera">
             <Field label="Mode">
-              <Select
+              <Picker
                 label="Camera mode"
                 value={cameraMode}
                 options={CAMERA_OPTIONS}
@@ -197,7 +204,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               />
             </Field>
             <Field label="Focal point">
-              <Select
+              <Picker
                 label="Focal point"
                 value={focalPoint}
                 options={FOCAL_OPTIONS}
@@ -242,10 +249,10 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
           <Group title="Appearance">
             <Field label="Theme">
-              <Select label="Theme" value={uiTheme} options={THEME_OPTIONS} onChange={setUiTheme} />
+              <Picker label="Theme" value={uiTheme} options={THEME_OPTIONS} onChange={setUiTheme} />
             </Field>
             <Field label="Lighting">
-              <Select
+              <Picker
                 label="Lighting"
                 value={lightingPreset.name}
                 options={lightingOptions}
@@ -253,7 +260,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
               />
             </Field>
             <Field label="Motion">
-              <Select
+              <Picker
                 label="Motion"
                 value={motionPreset.name}
                 options={motionOptions}
@@ -264,7 +271,7 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
           <Group title="Audio">
             <Field label="Sound">
-              <Toggle on={soundEnabled} onToggle={() => setSoundEnabled(!soundEnabled)} />
+              <Switch aria-label="Sound" checked={soundEnabled} onCheckedChange={setSoundEnabled} />
             </Field>
           </Group>
 

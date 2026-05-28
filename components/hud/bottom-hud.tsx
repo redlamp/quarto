@@ -115,13 +115,14 @@ export function BottomHud({ state, moves }: BottomHudProps) {
           attrLines.map((part, i) => {
             const attr = ATTR_NAMES[i];
             const isShared = attr !== undefined && (sharedMask & ATTR[attr]) !== 0;
+            // Both states share padding/rounding so the bar height doesn't jump.
             return (
               <span
                 key={part}
                 className={
                   isShared
                     ? 'rounded-md bg-amber-300 px-2 py-1 text-center font-bold text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_0_1px_rgba(180,120,30,0.5)]'
-                    : 'text-center'
+                    : 'rounded-md px-2 py-1 text-center'
                 }
               >
                 {part}
@@ -129,7 +130,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
             );
           })
         ) : (
-          <span className="col-span-4 text-center text-slate-500">—</span>
+          <span className="col-span-4 px-2 py-1 text-center text-slate-500">—</span>
         )}
       </div>
     </div>

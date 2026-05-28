@@ -56,7 +56,9 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
         {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
         {sharedTraits.length > 0 && (
           <div className="flex flex-col items-center gap-2">
-            <p className="text-muted-foreground text-xs tracking-wider uppercase">Line shared</p>
+            <p className="text-popover-foreground text-xs font-semibold tracking-widest uppercase opacity-90">
+              Line shared
+            </p>
             <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-sm capitalize">
               {sharedTraits.map((t) => (
                 <span

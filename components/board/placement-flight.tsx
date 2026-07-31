@@ -5,12 +5,15 @@ import { useRef, useState } from 'react';
 import gsap from 'gsap';
 import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
+import { cellPosition } from './board-grid';
 import { useMotion } from '@/lib/motion/use-motion';
 import { useFlightStore } from '@/lib/state/flight-store';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 import type { Cell } from '@/lib/game/win';
 
 interface PlacementFlightProps {
+  variant: VariantDef;
   cells: readonly Cell[];
   currentPlayer: string | null;
   cellPitch: number;
@@ -25,13 +28,12 @@ interface PendingPlacement {
   fromZ: number;
 }
 
-function cellWorld(idx: number, pitch: number): [number, number, number] {
-  const row = Math.floor(idx / 4);
-  const col = idx % 4;
-  return [(col - 1.5) * pitch, 0, (row - 1.5) * pitch];
-}
-
-export function PlacementFlight({ cells, currentPlayer, cellPitch }: PlacementFlightProps) {
+export function PlacementFlight({
+  variant,
+  cells,
+  currentPlayer,
+  cellPitch,
+}: PlacementFlightProps) {
   const motion = useMotion();
   const groupRef = useRef<Group>(null);
   const prevCells = useRef<readonly Cell[]>(cells);
@@ -48,7 +50,7 @@ export function PlacementFlight({ cells, currentPlayer, cellPitch }: PlacementFl
     () => {
       const prev = prevCells.current;
       prevCells.current = cells;
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < cells.length; i++) {
         const before = prev[i] ?? null;
         const now = cells[i] ?? null;
         if (before === null && now !== null && currentPlayer !== null) {
@@ -74,7 +76,7 @@ export function PlacementFlight({ cells, currentPlayer, cellPitch }: PlacementFl
       const p = pending.current;
       pending.current = null;
       const token = ++flightToken.current;
-      const [toX, , toZ] = cellWorld(p.idx, cellPitch);
+      const [toX, , toZ] = cellPosition(p.idx, variant.boardSize, cellPitch);
       g.position.set(0, 0, p.fromZ);
       setFlight(p);
 
@@ -94,12 +96,22 @@ export function PlacementFlight({ cells, currentPlayer, cellPitch }: PlacementFl
       tl.to(g.position, { y: ARC_PEAK_Y, duration: dur / 2, ease: 'power2.out' }, 0);
       tl.to(g.position, { y: 0, duration: dur / 2, ease: 'power2.in' }, dur / 2);
     },
-    { dependencies: [flyingReceiver, cells, flight, cellPitch, motion.cinematic, motion.reduced] },
+    {
+      dependencies: [
+        flyingReceiver,
+        cells,
+        flight,
+        cellPitch,
+        variant,
+        motion.cinematic,
+        motion.reduced,
+      ],
+    },
   );
 
   return (
     <group ref={groupRef} visible={flight !== null}>
-      {flight !== null && <PieceMesh piece={flight.piece} interactive={false} />}
+      {flight !== null && <PieceMesh variant={variant} piece={flight.piece} interactive={false} />}
     </group>
   );
 }

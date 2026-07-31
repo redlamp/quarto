@@ -2,7 +2,7 @@
 tags:
   - domain/architecture
   - domain/visual
-  - status/adopted
+  - status/superseded
   - scope/m1
   - origin/grill-2026-05-25
 ---
@@ -20,11 +20,14 @@ tags:
 **Choice.** **A. 4-bit bitmask. No piece names.**
 
 **Why.**
+
 - Attribute checks (win detection) become bitwise ops — `(a & b & c & d) | (~a & ~b & ~c & ~d) !== 0` finds shared attributes in 4 ops.
 - Theme layer renders pieces as a pure function of bitmask + theme — no name lookup, no asset mapping.
 - 2D iso SVG and 3D mesh both derive from the same bit fields. Cross-view consistency is free.
 - Serialization for persistence is trivial (4 bits per piece, 64 bits for the board).
 
 **Date.** 2026-05-25.
+
+**Superseded 2026-07-31** by [[decision-variant-lineup]]: piece identity generalized to mixed-radix trait vectors so variants can use non-binary traits. The classic 4×4 variant's layout still reproduces this bitmask exactly.
 
 Linked from [[decisions]], [[decision-hybrid-3d-2d-rendering]].

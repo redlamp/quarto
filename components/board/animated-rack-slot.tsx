@@ -11,6 +11,7 @@ import { useMotion } from '@/lib/motion/use-motion';
 import { useHoverStore } from '@/lib/state/hover-store';
 import { useSfx } from '@/hooks/use-sfx';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 
 const RAISE_Y = 0.3;
 const HOVER_LIFT_Y = 0.12;
@@ -19,6 +20,7 @@ const BUTTON_BASE_OFFSET = 0.5;
 const DESELECT_DRAG_PX = 6;
 
 interface AnimatedRackSlotProps {
+  variant: VariantDef;
   piece: Piece;
   position: [number, number, number];
   slotSize: number;
@@ -33,6 +35,7 @@ interface AnimatedRackSlotProps {
 }
 
 export function AnimatedRackSlot({
+  variant,
   piece,
   position,
   slotSize,
@@ -161,6 +164,7 @@ export function AnimatedRackSlot({
       {showPiece && (
         <group ref={groupRef}>
           <PieceMesh
+            variant={variant}
             piece={piece}
             selected={isPendingHandoff}
             onClick={canPick ? handleClick : undefined}

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ATTR, ATTR_NAMES, ATTR_VALUE_LABELS, type AttrName } from '@/lib/game/pieces';
+import { getVariant, sharedTraitLabels } from '@/lib/game/variants';
 import type { QuartoState } from '@/lib/game/definition';
 
 interface WinBannerProps {
@@ -9,21 +9,11 @@ interface WinBannerProps {
   onRestart: () => void;
 }
 
-function sharedAttributeLabels(mask: number, samplePiece: number): string[] {
-  const parts: string[] = [];
-  for (const name of ATTR_NAMES) {
-    const bit = ATTR[name as AttrName];
-    if ((mask & bit) === 0) continue;
-    const valueIndex = (samplePiece & bit) === 0 ? 0 : 1;
-    parts.push(ATTR_VALUE_LABELS[name as AttrName][valueIndex]);
-  }
-  return parts;
-}
-
 export function WinBanner({ state, onRestart }: WinBannerProps) {
   if (!state) return null;
   const gameover = state.ctx.gameover;
   if (!gameover) return null;
+  const variant = getVariant(state.G.variantId);
   const winner = state.G.winner;
   const timeoutLoser = state.G.timeoutLoser;
   const aborted = state.G.aborted;
@@ -41,10 +31,7 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
 
   const subtitle = aborted ? 'Ran out of time on the first move — no result.' : null;
 
-  const sharedTraits =
-    winner && state.G.board[winner.line[0]] !== null
-      ? sharedAttributeLabels(winner.sharedMask, state.G.board[winner.line[0]] ?? 0)
-      : [];
+  const sharedTraits = winner ? sharedTraitLabels(variant, winner.shared) : [];
 
   // Float above the board near the top — no full-screen scrim, so the winning
   // line stays visible and the parallax camera keeps responding to the pointer.

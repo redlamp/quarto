@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { DEFAULT_VARIANT_ID } from '@/lib/game/variants';
 
 export type OpponentMode = 'hot-seat' | 'ai-random';
 export type UiTheme = 'light' | 'dark';
@@ -15,6 +16,9 @@ interface UiState {
   setDrawer: (open: boolean) => void;
 
   // Persisted settings
+  variantId: string;
+  setVariantId: (id: string) => void;
+
   opponent: OpponentMode;
   setOpponent: (mode: OpponentMode) => void;
 
@@ -65,6 +69,9 @@ export const useUiStore = create<UiState>()(
       closeDrawer: () => set({ drawerOpen: false }),
       setDrawer: (open) => set({ drawerOpen: open }),
 
+      variantId: DEFAULT_VARIANT_ID,
+      setVariantId: (id) => set({ variantId: id }),
+
       opponent: 'hot-seat',
       setOpponent: (mode) => set({ opponent: mode }),
 
@@ -113,6 +120,7 @@ export const useUiStore = create<UiState>()(
       name: 'quarto-settings',
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
+        variantId: s.variantId,
         opponent: s.opponent,
         themeName: s.themeName,
         lightingPresetName: s.lightingPresetName,

@@ -4,8 +4,10 @@ import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import { useFlightStore } from '@/lib/state/flight-store';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 
 interface PlayerPedestalProps {
+  variant: VariantDef;
   playerID: '0' | '1';
   piece: Piece | null;
   highlighted: boolean;
@@ -17,7 +19,7 @@ const PAD_RADIUS = 0.5;
 const HIGHLIGHT_INSET = 0.08;
 const PAD_SEGMENTS = 48;
 
-export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalProps) {
+export function PlayerPedestal({ variant, playerID, piece, highlighted }: PlayerPedestalProps) {
   const { theme } = useTheme();
   const flyingReceiver = useFlightStore((s) => s.flyingReceiver);
   const z = Z_BY_PLAYER[playerID];
@@ -51,7 +53,7 @@ export function PlayerPedestal({ playerID, piece, highlighted }: PlayerPedestalP
           envMapIntensity={0.2}
         />
       </mesh>
-      {showPiece && <PieceMesh piece={piece} />}
+      {showPiece && <PieceMesh variant={variant} piece={piece} />}
     </group>
   );
 }

@@ -1,10 +1,12 @@
 'use client';
 
 import { AnimatedRackSlot } from './animated-rack-slot';
-import { ALL_PIECES, type Piece } from '@/lib/game/pieces';
+import { piecesOf, type VariantDef } from '@/lib/game/variants';
+import type { Piece } from '@/lib/game/pieces';
 import { useTheme } from '@/lib/theme/context';
 
 export interface PieceRackProps {
+  variant: VariantDef;
   available: readonly Piece[];
   pendingHandoff: Piece | null;
   canPick: boolean;
@@ -13,27 +15,52 @@ export interface PieceRackProps {
   onDeselectHandoff: () => void;
 }
 
-const ROWS = 4;
-const COLS = 4;
-const PITCH = 0.7;
-const X_OFFSET = -3.6;
-const SLOT_SIZE = PITCH * 0.85;
+const BASE_PITCH = 0.7;
+const RACK_GAP = 0.5;
 // Click travel (px) above which the click is treated as a camera drag, not a tap.
 const DESELECT_DRAG_PX = 6;
 
-function slotPosition(piece: Piece): [number, number, number] {
-  const row = Math.floor(piece / COLS);
-  const col = piece % COLS;
-  return [(col - (COLS - 1) / 2) * PITCH, 0, (row - (ROWS - 1) / 2) * PITCH];
+interface RackLayout {
+  cols: number;
+  rows: number;
+  pitch: number;
+  offsetX: number;
+}
+
+// Rack sits to the board's left; the offset keeps a constant gap between the
+// board edge and the rack edge as both scale with the variant.
+export function rackLayout(variant: VariantDef, cellPitch: number): RackLayout {
+  const cols = variant.rackCols;
+  const rows = Math.ceil(variant.pieceCount / cols);
+  const pitch = BASE_PITCH * variant.worldScale;
+  const boardHalf = (variant.boardSize * cellPitch * variant.worldScale) / 2;
+  const rackHalf = (cols * pitch) / 2;
+  return { cols, rows, pitch, offsetX: -(boardHalf + rackHalf + RACK_GAP + 0.2) };
+}
+
+function slotPosition(piece: Piece, layout: RackLayout): [number, number, number] {
+  const row = Math.floor(piece / layout.cols);
+  const col = piece % layout.cols;
+  return [
+    (col - (layout.cols - 1) / 2) * layout.pitch,
+    0,
+    (row - (layout.rows - 1) / 2) * layout.pitch,
+  ];
 }
 
 // World-space position of a piece's rack slot (rack group is offset on X).
-export function rackSlotWorld(piece: Piece): [number, number, number] {
-  const [x, y, z] = slotPosition(piece);
-  return [x + X_OFFSET, y, z];
+export function rackSlotWorld(
+  variant: VariantDef,
+  cellPitch: number,
+  piece: Piece,
+): [number, number, number] {
+  const layout = rackLayout(variant, cellPitch);
+  const [x, y, z] = slotPosition(piece, layout);
+  return [x + layout.offsetX, y, z];
 }
 
 export function PieceRack({
+  variant,
   available,
   pendingHandoff,
   canPick,
@@ -42,8 +69,11 @@ export function PieceRack({
   onDeselectHandoff,
 }: PieceRackProps) {
   const { theme } = useTheme();
+  const layout = rackLayout(variant, theme.piece.cellPitch);
+  const slotSize = layout.pitch * 0.85;
+  const allPieces = piecesOf(variant);
   return (
-    <group position={[X_OFFSET, 0, 0]}>
+    <group position={[layout.offsetX, 0, 0]}>
       {/* Rack surface doubles as a deselect target: a tap on empty rack space
           (pieces stop propagation) cancels a pending give. Skip camera drags. */}
       <mesh
@@ -56,7 +86,9 @@ export function PieceRack({
           if (canPick && pendingHandoff !== null) onDeselectHandoff();
         }}
       >
-        <planeGeometry args={[PITCH * COLS + 0.4, PITCH * ROWS + 0.4]} />
+        <planeGeometry
+          args={[layout.pitch * layout.cols + 0.4, layout.pitch * layout.rows + 0.4]}
+        />
         <meshStandardMaterial
           color={theme.colors.rackSurface}
           roughness={0.9}
@@ -64,17 +96,18 @@ export function PieceRack({
           envMapIntensity={0.2}
         />
       </mesh>
-      {ALL_PIECES.map((piece) => {
+      {allPieces.map((piece) => {
         const isAvailable = available.includes(piece);
         const isPendingHandoff = pendingHandoff === piece;
         const showPiece = isAvailable || isPendingHandoff;
-        const sweepDelay = (piece / ALL_PIECES.length) * 0.35;
+        const sweepDelay = (piece / allPieces.length) * 0.35;
         return (
           <AnimatedRackSlot
             key={piece}
+            variant={variant}
             piece={piece}
-            position={slotPosition(piece)}
-            slotSize={SLOT_SIZE}
+            position={slotPosition(piece, layout)}
+            slotSize={slotSize}
             showPiece={showPiece}
             isPendingHandoff={isPendingHandoff}
             canPick={canPick}

@@ -4,12 +4,14 @@ import { Html } from '@react-three/drei';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { useTheme } from '@/lib/theme/context';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 
 const BUTTON_BASE_OFFSET = 0.5;
 // Click travel (px) above which the click is a camera drag, not a tap.
 const DESELECT_DRAG_PX = 6;
 
 interface AnimatedBoardCellProps {
+  variant: VariantDef;
   position: [number, number, number];
   cellPitch: number;
   cellSize: number;
@@ -29,6 +31,7 @@ interface AnimatedBoardCellProps {
 }
 
 export function AnimatedBoardCell({
+  variant,
   position,
   cellPitch,
   cellSize,
@@ -110,7 +113,7 @@ export function AnimatedBoardCell({
         </mesh>
       )}
       {showPiece && piece !== null && (
-        <PieceMesh piece={piece} dimmed={winDecided && !isOnWinLine} />
+        <PieceMesh variant={variant} piece={piece} dimmed={winDecided && !isOnWinLine} />
       )}
       {isPending && (
         <Html

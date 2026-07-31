@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Client } from 'boardgame.io/client';
-import { Quarto, type QuartoState } from '@/lib/game/definition';
+import { createQuartoGame, type QuartoState } from '@/lib/game/definition';
+import { getVariant } from '@/lib/game/variants';
 import type { Piece } from '@/lib/game/pieces';
 
 interface QuartoMoves {
@@ -25,17 +26,31 @@ export interface QuartoClient {
   restart: () => void;
 }
 
-function createClient(): ClientType {
-  const c = Client({ game: Quarto, numPlayers: 2, debug: false });
+function createClient(variantId: string): ClientType {
+  const c = Client({ game: createQuartoGame(getVariant(variantId)), numPlayers: 2, debug: false });
   c.start();
   return c;
 }
 
-export function useQuartoClient(): QuartoClient {
-  const [client, setClient] = useState<ClientType>(() => createClient());
+export function useQuartoClient(variantId: string): QuartoClient {
+  const [client, setClient] = useState<ClientType>(() => createClient(variantId));
   const [state, setState] = useState<ClientState | null>(() => client.getState() ?? null);
+  const lastVariantId = useRef(variantId);
+
+  // Variant switch = new game definition, so the client is rebuilt from
+  // scratch (fresh board, fresh rack).
+  useEffect(() => {
+    if (lastVariantId.current === variantId) return;
+    lastVariantId.current = variantId;
+    setClient((prev) => {
+      prev.stop?.();
+      return createClient(variantId);
+    });
+  }, [variantId]);
 
   useEffect(() => {
+    // boardgame.io invokes the callback immediately on subscribe for local
+    // games, so a rebuilt client pushes its fresh state right away.
     const unsubscribe = client.subscribe(() => {
       setState(client.getState() ?? null);
     });
@@ -45,7 +60,7 @@ export function useQuartoClient(): QuartoClient {
   const restart = useCallback(() => {
     setClient((prev) => {
       prev.stop?.();
-      return createClient();
+      return createClient(lastVariantId.current);
     });
   }, []);
 

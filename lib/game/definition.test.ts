@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { Client } from 'boardgame.io/client';
-import { Quarto } from './definition';
+import { createQuartoGame, Quarto } from './definition';
+import { getVariant } from './variants';
 
-function newClient() {
-  const client = Client({ game: Quarto, numPlayers: 2 });
+function newClient(variantId?: string) {
+  const game = variantId ? createQuartoGame(getVariant(variantId)) : Quarto;
+  const client = Client({ game, numPlayers: 2 });
   client.start();
   const m = client.moves as Record<string, (...args: unknown[]) => void>;
   return { client, m };
@@ -118,6 +120,60 @@ describe('Quarto game definition', () => {
     expect(state?.G.timeoutLoser).toBe('1');
     expect(state?.G.aborted).toBe(false);
     expect(state?.ctx.gameover).toEqual({ winner: '0' });
+    client.stop();
+  });
+
+  it('stamps the variant id into game state', () => {
+    const { client } = newClient('hexa');
+    const state = client.getState();
+    expect(state?.G.variantId).toBe('hexa');
+    expect(state?.G.board.length).toBe(36);
+    expect(state?.G.available.length).toBe(36);
+    client.stop();
+  });
+
+  it('duo variant: a 2-in-a-line sharing a trait wins', () => {
+    const { client, m } = newClient('duo');
+    m.selectHandoff?.(0); // round light → P1
+    m.confirmHandoff?.();
+    m.selectCell?.(0);
+    m.confirmPlace?.();
+    m.selectHandoff?.(1); // square light → P0
+    m.confirmHandoff?.();
+    m.selectCell?.(1);
+    m.confirmPlace?.();
+    m.callQuarto?.();
+    const state = client.getState();
+    expect(state?.G.winner?.player).toBe('0');
+    expect(state?.G.winner?.line).toEqual([0, 1]);
+    expect(state?.G.winner?.shared).toContainEqual({ trait: 1, value: 0 });
+    client.stop();
+  });
+
+  it('trio variant: exhausting the 8-piece rack on the 9-cell board is a draw', () => {
+    const { client, m } = newClient('trio');
+    const play = (piece: number, cell: number) => {
+      m.selectHandoff?.(piece);
+      m.confirmHandoff?.();
+      m.selectCell?.(cell);
+      m.confirmPlace?.();
+    };
+    // Center (cell 4) stays empty, so only row 0, row 2, col 0, col 2 ever
+    // complete — and each is arranged to share no trait value.
+    play(0b000, 0);
+    play(0b011, 1);
+    play(0b101, 2);
+    play(0b111, 3);
+    play(0b100, 5);
+    play(0b110, 6);
+    play(0b001, 7);
+    play(0b010, 8);
+    const state = client.getState();
+    expect(state?.G.winner).toBeNull();
+    expect(state?.G.draw).toBe(true);
+    expect(state?.G.available.length).toBe(0);
+    expect(state?.G.board[4]).toBeNull();
+    expect(state?.ctx.gameover).toEqual({ draw: true });
     client.stop();
   });
 });

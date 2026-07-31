@@ -11,6 +11,7 @@ import { PlacementFlight } from '@/components/board/placement-flight';
 import { CameraRig, CAMERA_PRESETS } from './camera-rig';
 import { useTheme } from '@/lib/theme/context';
 import { useUiStore } from '@/lib/state/ui-store';
+import { getVariant } from '@/lib/game/variants';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -41,6 +42,10 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const focalPoint = useUiStore((s) => s.focalPoint);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
+  const uiVariantId = useUiStore((s) => s.variantId);
+  // Game state is the source of truth for which variant is on the table — the
+  // store value only bridges the frame(s) before the rebuilt client reports in.
+  const variant = getVariant(state?.G.variantId ?? uiVariantId);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;
@@ -50,7 +55,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const canPlace = stage === 'place' && handedPiece !== null;
   const canPick = stage === 'pick';
-  const cellPitch = theme.piece.cellPitch;
+  const cellPitch = theme.piece.cellPitch * variant.worldScale;
 
   // The receiver is the player who currently holds (or is about to hold) the
   // handed piece. Pick stage → opponent is about to receive. Place stage →
@@ -131,6 +136,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           />
         </mesh>
         <BoardGrid
+          variant={variant}
           cells={board}
           pendingPlace={pendingPlace}
           ghostPiece={handedPiece}
@@ -143,6 +149,7 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           onDeselectHandoff={moves.clearPendingHandoff}
         />
         <PieceRack
+          variant={variant}
           available={available}
           pendingHandoff={pendingHandoff}
           canPick={canPick}
@@ -151,17 +158,24 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
           onDeselectHandoff={moves.clearPendingHandoff}
         />
         <PlayerPedestal
+          variant={variant}
           playerID="0"
           piece={currentPlayer === '0' && handedPiece !== null ? handedPiece : null}
           highlighted={receiver === '0'}
         />
         <PlayerPedestal
+          variant={variant}
           playerID="1"
           piece={currentPlayer === '1' && handedPiece !== null ? handedPiece : null}
           highlighted={receiver === '1'}
         />
-        <HandoffFlight handedPiece={handedPiece} receiver={receiver} />
-        <PlacementFlight cells={board} currentPlayer={currentPlayer} cellPitch={cellPitch} />
+        <HandoffFlight variant={variant} handedPiece={handedPiece} receiver={receiver} />
+        <PlacementFlight
+          variant={variant}
+          cells={board}
+          currentPlayer={currentPlayer}
+          cellPitch={cellPitch}
+        />
         <CameraRig mode={cameraMode} focalTarget={focalTarget} />
         <OrbitControls
           makeDefault

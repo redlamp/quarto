@@ -3,11 +3,13 @@
 import { useMemo } from 'react';
 import { Vector2 } from 'three';
 import { Outlines, RoundedBox } from '@react-three/drei';
-import { traits, type Piece } from '@/lib/game/pieces';
+import { visualParamsOf, type ShapeKind, type VariantDef } from '@/lib/game/variants';
+import type { Piece } from '@/lib/game/pieces';
 import { useTheme } from '@/lib/theme/context';
 import { getSoftNoiseTexture } from '@/lib/three/soft-noise-texture';
 
 interface PieceMeshProps {
+  variant: VariantDef;
   piece: Piece;
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerOver?: (e: React.PointerEvent) => void;
@@ -30,6 +32,25 @@ const CLAY_ENV_INTENSITY = 0.35;
 const RADIAL_SEGMENTS = 48;
 const FILLET_SEGMENTS = 6;
 
+// Prism silhouettes (triangle/diamond/hexagon) via low-segment cylinders.
+// Radius multipliers even out the visual mass across silhouettes — a 3-sided
+// prism at the same circumradius reads much smaller than a cylinder.
+const PRISM_SEGMENTS: Partial<Record<ShapeKind, number>> = { tri: 3, diamond: 4, hex: 6 };
+const SHAPE_RADIUS_MUL: Record<ShapeKind, number> = {
+  round: 1,
+  square: 1,
+  tri: 1.32,
+  diamond: 1.2,
+  hex: 1.06,
+};
+
+// Girth trait: slim/wide radius extents (multiplies the theme radius).
+const GIRTH_MIN = 0.72;
+const GIRTH_MAX = 1.22;
+// Band trait: contrasting ring around the piece's waist.
+const BAND_HEIGHT = 0.1;
+const BAND_OVERHANG = 1.1;
+
 // Hollow plug ("gem"): rounded rim to match the pieces, plus a soft-touch
 // plastic finish — clearcoat for a glossy-but-not-mirror reflection over a
 // matte base, and a faint noise roughnessMap so it reads like device plastic.
@@ -39,6 +60,21 @@ const PLUG_CLEARCOAT = 1;
 const PLUG_CLEARCOAT_ROUGHNESS = 0.25;
 const PLUG_ENV_INTENSITY = 1.1;
 const PLUG_SINK = 0.005;
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// Mix two 6-digit hex colors in sRGB (display) space. three's Color.lerp
+// interpolates in the linear working space, which crushes the mid steps of
+// the 3- and 5-value tone ramps toward light.
+function mixHex(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) =>
+    Math.round(((pa >> shift) & 0xff) * (1 - t) + ((pb >> shift) & 0xff) * t);
+  return `#${(((ch(16) << 16) | (ch(8) << 8) | ch(0)) >>> 0).toString(16).padStart(6, '0')}`;
+}
 
 // Lathe profile for a cylinder with quarter-arc fillets on both rims.
 // Side stays at full `radius`; only the top + bottom edges curve in.
@@ -61,6 +97,7 @@ function roundedCylinderProfile(radius: number, height: number, fillet: number):
 }
 
 export function PieceMesh({
+  variant,
   piece,
   ghost = false,
   selected = false,
@@ -70,23 +107,42 @@ export function PieceMesh({
 }: PieceMeshProps) {
   const { theme } = useTheme();
   const raycastProp = interactive ? {} : { raycast: NO_RAYCAST };
-  const t = useMemo(() => traits(piece), [piece]);
+  const v = useMemo(() => visualParamsOf(variant, piece), [variant, piece]);
   const p = theme.piece;
   const c = theme.colors;
-  const height = t.tall ? p.heightTall : p.heightShort;
-  const color = t.dark ? c.pieceDark : c.pieceLight;
+  const s = variant.worldScale;
+
+  const height = lerp(p.heightShort, p.heightTall, v.heightT) * s;
+  const girthMul = v.girthT === null ? 1 : lerp(GIRTH_MIN, GIRTH_MAX, v.girthT);
+  const baseRadius = p.radius * girthMul * s;
+  const shapeRadius = baseRadius * SHAPE_RADIUS_MUL[v.shape];
+  const edgeRadius = Math.min(EDGE_RADIUS, baseRadius * 0.45);
+
   const opacity = ghost ? 0.8 : dimmed ? 0.35 : 1;
   const transparent = ghost || dimmed;
 
+  // Tone: mix between the theme's light and dark piece colors so ternary and
+  // 5-step tone ramps stay on the theme's palette.
+  const color = useMemo(
+    () => mixHex(c.pieceLight, c.pieceDark, v.toneT),
+    [c.pieceLight, c.pieceDark, v.toneT],
+  );
+  // Band contrast: light pieces get a dark band and vice versa.
+  const bandColor = v.toneT <= 0.5 ? c.pieceDark : c.pieceLight;
+
+  const isPrism = v.shape === 'tri' || v.shape === 'diamond' || v.shape === 'hex';
+  const prismSegments = PRISM_SEGMENTS[v.shape] ?? RADIAL_SEGMENTS;
+
   const cylinderProfile = useMemo(
-    () => roundedCylinderProfile(p.radius, height, EDGE_RADIUS),
-    [p.radius, height],
+    () => roundedCylinderProfile(shapeRadius, height, edgeRadius),
+    [shapeRadius, height, edgeRadius],
   );
 
-  const hollowSizeXZ = t.square ? p.radius * 1.15 : p.radius * 0.6;
+  const hollowSizeXZ = v.shape === 'square' ? baseRadius * 1.15 : shapeRadius * 0.6;
+  const plugDepth = p.hollowDepth * s;
   const plugProfile = useMemo(
-    () => roundedCylinderProfile(hollowSizeXZ, p.hollowDepth, PLUG_FILLET),
-    [hollowSizeXZ, p.hollowDepth],
+    () => roundedCylinderProfile(hollowSizeXZ, plugDepth, PLUG_FILLET),
+    [hollowSizeXZ, plugDepth],
   );
   const noiseMap = useMemo(() => getSoftNoiseTexture(), []);
 
@@ -98,6 +154,7 @@ export function PieceMesh({
       envMapIntensity={CLAY_ENV_INTENSITY}
       transparent={transparent}
       opacity={opacity}
+      flatShading={isPrism}
     />
   );
 
@@ -115,21 +172,31 @@ export function PieceMesh({
     />
   );
 
+  const outline = selected && (
+    <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />
+  );
+
   return (
     <group {...handlers}>
-      {t.square ? (
+      {v.shape === 'square' ? (
         <RoundedBox
           position={[0, height / 2, 0]}
-          args={[p.radius * 2, height, p.radius * 2]}
-          radius={EDGE_RADIUS}
+          args={[baseRadius * 2, height, baseRadius * 2]}
+          radius={edgeRadius}
           smoothness={4}
           castShadow
           receiveShadow
           {...raycastProp}
         >
           {renderClayMaterial()}
-          {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
+          {outline}
         </RoundedBox>
+      ) : isPrism ? (
+        <mesh position={[0, height / 2, 0]} castShadow receiveShadow {...raycastProp}>
+          <cylinderGeometry args={[shapeRadius, shapeRadius, height, prismSegments]} />
+          {renderClayMaterial()}
+          {outline}
+        </mesh>
       ) : (
         // LatheGeometry revolves a 2D profile around the Y axis. Profile gives
         // a quarter-arc fillet at the top + bottom rim while keeping the side
@@ -138,14 +205,57 @@ export function PieceMesh({
         <mesh castShadow receiveShadow {...raycastProp}>
           <latheGeometry args={[cylinderProfile, RADIAL_SEGMENTS]} />
           {renderClayMaterial()}
-          {selected && <Outlines color={c.selection} thickness={OUTLINE_THICKNESS} angle={0} />}
+          {outline}
         </mesh>
       )}
-      {t.hollow &&
-        (t.square ? (
+
+      {v.band &&
+        (v.shape === 'square' ? (
           <RoundedBox
-            position={[0, height + p.hollowDepth / 2 - PLUG_SINK, 0]}
-            args={[hollowSizeXZ, p.hollowDepth, hollowSizeXZ]}
+            position={[0, height / 2, 0]}
+            args={[baseRadius * 2 * BAND_OVERHANG, BAND_HEIGHT * s, baseRadius * 2 * BAND_OVERHANG]}
+            radius={PLUG_FILLET}
+            smoothness={2}
+            castShadow
+            receiveShadow
+            {...raycastProp}
+          >
+            <meshStandardMaterial
+              color={bandColor}
+              roughness={p.roughness}
+              metalness={p.metalness}
+              envMapIntensity={CLAY_ENV_INTENSITY}
+              transparent={transparent}
+              opacity={opacity}
+            />
+          </RoundedBox>
+        ) : (
+          <mesh position={[0, height / 2, 0]} castShadow receiveShadow {...raycastProp}>
+            <cylinderGeometry
+              args={[
+                shapeRadius * BAND_OVERHANG,
+                shapeRadius * BAND_OVERHANG,
+                BAND_HEIGHT * s,
+                prismSegments,
+              ]}
+            />
+            <meshStandardMaterial
+              color={bandColor}
+              roughness={p.roughness}
+              metalness={p.metalness}
+              envMapIntensity={CLAY_ENV_INTENSITY}
+              transparent={transparent}
+              opacity={opacity}
+              flatShading={isPrism}
+            />
+          </mesh>
+        ))}
+
+      {v.hollow &&
+        (v.shape === 'square' ? (
+          <RoundedBox
+            position={[0, height + plugDepth / 2 - PLUG_SINK, 0]}
+            args={[hollowSizeXZ, plugDepth, hollowSizeXZ]}
             radius={PLUG_FILLET}
             smoothness={4}
             receiveShadow
@@ -153,6 +263,15 @@ export function PieceMesh({
           >
             {renderPlugMaterial()}
           </RoundedBox>
+        ) : isPrism ? (
+          <mesh
+            position={[0, height + plugDepth / 2 - PLUG_SINK, 0]}
+            receiveShadow
+            {...raycastProp}
+          >
+            <cylinderGeometry args={[hollowSizeXZ, hollowSizeXZ, plugDepth, prismSegments]} />
+            {renderPlugMaterial()}
+          </mesh>
         ) : (
           <mesh position={[0, height - PLUG_SINK, 0]} receiveShadow {...raycastProp}>
             <latheGeometry args={[plugProfile, RADIAL_SEGMENTS]} />

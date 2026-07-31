@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { findWin } from '@/lib/game/win';
-import { ATTR, ATTR_NAMES, describe } from '@/lib/game/pieces';
+import { describePiece, getVariant } from '@/lib/game/variants';
 import { useSfx } from '@/hooks/use-sfx';
 import { useHoverStore } from '@/lib/state/hover-store';
 import type { QuartoState } from '@/lib/game/definition';
@@ -30,10 +30,12 @@ export function BottomHud({ state, moves }: BottomHudProps) {
   const playSfx = useSfx();
   const hoveredPiece = useHoverStore((s) => s.piece);
   const G = state?.G;
+  const variant = getVariant(G?.variantId);
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
-  const winInfo = useMemo(() => (G ? findWin(G.board) : null), [G]);
+  const winInfo = useMemo(() => (G ? findWin(G.board, variant) : null), [G, variant]);
   const winAvailable = winInfo !== null;
-  const sharedMask = G?.winner?.sharedMask ?? winInfo?.sharedMask ?? 0;
+  const shared = G?.winner?.shared ?? winInfo?.shared;
+  const sharedTraitSet = useMemo(() => new Set((shared ?? []).map((s) => s.trait)), [shared]);
   const isGameOver = !!state?.ctx.gameover;
   const hasPendingPlace = G?.pendingPlace !== null && G?.pendingPlace !== undefined;
   const hasPendingHandoff = G?.pendingHandoff !== null && G?.pendingHandoff !== undefined;
@@ -42,21 +44,24 @@ export function BottomHud({ state, moves }: BottomHudProps) {
   const canCallQuarto = winAvailable && !isGameOver;
 
   const handedLabel =
-    G?.handedPiece !== null && G?.handedPiece !== undefined ? describe(G.handedPiece) : null;
+    G?.handedPiece !== null && G?.handedPiece !== undefined
+      ? describePiece(variant, G.handedPiece)
+      : null;
   const handoffLabel =
     G?.pendingHandoff !== null && G?.pendingHandoff !== undefined
-      ? describe(G.pendingHandoff)
+      ? describePiece(variant, G.pendingHandoff)
       : null;
 
-  const hoverLabel = hoveredPiece !== null ? describe(hoveredPiece) : null;
+  const hoverLabel = hoveredPiece !== null ? describePiece(variant, hoveredPiece) : null;
   const stageLabel = stage === 'place' ? handedLabel : stage === 'pick' ? handoffLabel : null;
   // When a winning line exists, fall back to a piece from that line so the
   // detail panel shows the shared trait pills even with no hover/stage piece.
   const winLineLabel =
     winInfo && G && G.board[winInfo.cells[0]!] !== null
-      ? describe(G.board[winInfo.cells[0]!]!)
+      ? describePiece(variant, G.board[winInfo.cells[0]!]!)
       : null;
   const activeLabel = hoverLabel ?? stageLabel ?? winLineLabel;
+  // Value labels are single words, one per trait — same order as the traits.
   const attrLines = activeLabel ? activeLabel.split(' ') : null;
 
   return (
@@ -103,22 +108,22 @@ export function BottomHud({ state, moves }: BottomHudProps) {
 
       {/* Faux-3D plate: top-light gradient + inset highlight/shadow + ring,
           so the bar reads as a brushed grey surface catching overhead light.
-          Attrs that match the current winning line's sharedMask glow. */}
+          Trait values shared along the current winning line glow. */}
       <div
-        className="grid w-full max-w-md grid-cols-4 gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
+        className="grid w-full max-w-md gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
         style={{
+          gridTemplateColumns: `repeat(${variant.traits.length}, minmax(0, 1fr))`,
           boxShadow:
             'inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)',
         }}
       >
         {attrLines
           ? attrLines.map((part, i) => {
-              const attr = ATTR_NAMES[i];
-              const isShared = attr !== undefined && (sharedMask & ATTR[attr]) !== 0;
+              const isShared = sharedTraitSet.has(i);
               // Both states share padding/rounding so the bar height doesn't jump.
               return (
                 <span
-                  key={part}
+                  key={`${variant.traits[i]?.name ?? i}-${part}`}
                   className={
                     isShared
                       ? 'rounded-md bg-amber-300 px-2 py-1 text-center font-bold text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_0_1px_rgba(180,120,30,0.5)]'
@@ -129,8 +134,8 @@ export function BottomHud({ state, moves }: BottomHudProps) {
                 </span>
               );
             })
-          : ATTR_NAMES.map((name) => (
-              <span key={name} className="rounded-md px-2 py-1 text-center text-slate-500">
+          : variant.traits.map((t) => (
+              <span key={t.name} className="rounded-md px-2 py-1 text-center text-slate-500">
                 –
               </span>
             ))}

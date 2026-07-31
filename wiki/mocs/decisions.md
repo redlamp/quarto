@@ -9,7 +9,7 @@ Atomic decision notes for the Quarto project. Each note captures one decision: c
 - [[decision-adopt-boardgame-io]]
 - [[decision-ai-strategy-v1-random-in-worker]]
 - [[decision-hybrid-3d-2d-rendering]]
-- [[decision-piece-bitmask-identity]]
+- [[decision-variant-lineup]]
 - [[decision-clock-pattern-from-narrative-chess]]
 - [[decision-r3f-ecosystem-deps]]
 - [[decision-project-structure-and-tooling]]
@@ -52,4 +52,4 @@ Atomic decision notes for the Quarto project. Each note captures one decision: c
 
 ## Superseded
 
--
+- [[decision-piece-bitmask-identity]] — generalized to mixed-radix trait vectors by [[decision-variant-lineup]] (2026-07-31).

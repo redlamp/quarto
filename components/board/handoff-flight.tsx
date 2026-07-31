@@ -6,11 +6,14 @@ import gsap from 'gsap';
 import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
 import { rackSlotWorld } from './piece-rack';
+import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
 import { useFlightStore } from '@/lib/state/flight-store';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 
 interface HandoffFlightProps {
+  variant: VariantDef;
   handedPiece: Piece | null;
   receiver: '0' | '1' | null;
 }
@@ -18,7 +21,8 @@ interface HandoffFlightProps {
 const PEDESTAL_Z: Record<'0' | '1', number> = { '0': 2.7, '1': -2.7 };
 const ARC_PEAK_Y = 1.6;
 
-export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
+export function HandoffFlight({ variant, handedPiece, receiver }: HandoffFlightProps) {
+  const { theme } = useTheme();
   const motion = useMotion();
   const groupRef = useRef<Group>(null);
   const prevHanded = useRef<Piece | null>(handedPiece);
@@ -35,7 +39,7 @@ export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
       if (handedPiece === null || !wasNull || receiver === null || !g) return;
 
       const token = ++flightToken.current;
-      const from = rackSlotWorld(handedPiece);
+      const from = rackSlotWorld(variant, theme.piece.cellPitch, handedPiece);
       const toX = 0;
       const toZ = PEDESTAL_Z[receiver];
       g.position.set(from[0], 0, from[2]);
@@ -60,12 +64,23 @@ export function HandoffFlight({ handedPiece, receiver }: HandoffFlightProps) {
       tl.to(g.position, { y: ARC_PEAK_Y, duration: dur / 2, ease: 'power2.out' }, 0);
       tl.to(g.position, { y: 0, duration: dur / 2, ease: 'power2.in' }, dur / 2);
     },
-    { dependencies: [handedPiece, receiver, motion.cinematic, motion.reduced] },
+    {
+      dependencies: [
+        handedPiece,
+        receiver,
+        variant,
+        theme.piece.cellPitch,
+        motion.cinematic,
+        motion.reduced,
+      ],
+    },
   );
 
   return (
     <group ref={groupRef} visible={flightPiece !== null}>
-      {flightPiece !== null && <PieceMesh piece={flightPiece} interactive={false} />}
+      {flightPiece !== null && (
+        <PieceMesh variant={variant} piece={flightPiece} interactive={false} />
+      )}
     </group>
   );
 }

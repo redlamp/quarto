@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
+import { VARIANTS, getVariant } from '@/lib/game/variants';
 import {
   useUiStore,
   type CameraMode,
@@ -37,6 +38,8 @@ interface SettingsDrawerProps {
 }
 
 const SELECT_TRIGGER_W = 'w-40';
+
+const VARIANT_OPTIONS = VARIANTS.map((v) => ({ value: v.id, label: v.label }));
 
 const OPPONENT_OPTIONS: Array<{ value: OpponentMode; label: string }> = [
   { value: 'hot-seat', label: 'Hot-seat' },
@@ -138,6 +141,8 @@ function RangeRow({ label, value, min, max, step, onChange }: RangeRowProps) {
 export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const isOpen = useUiStore((s) => s.drawerOpen);
   const setOpen = useUiStore((s) => s.setDrawer);
+  const variantId = useUiStore((s) => s.variantId);
+  const setVariantId = useUiStore((s) => s.setVariantId);
   const opponent = useUiStore((s) => s.opponent);
   const setOpponent = useUiStore((s) => s.setOpponent);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
@@ -180,6 +185,15 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
         <div className="mt-6 flex flex-col gap-5 text-sm">
           <Group title="Play">
+            <Field label="Variant">
+              <Picker
+                label="Variant"
+                value={variantId}
+                options={VARIANT_OPTIONS}
+                onChange={setVariantId}
+              />
+            </Field>
+            <p className="text-xs text-slate-500">{getVariant(variantId).description}</p>
             <Field label="Opponent">
               <Picker
                 label="Opponent"

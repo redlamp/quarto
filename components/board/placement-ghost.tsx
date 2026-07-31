@@ -5,26 +5,25 @@ import { useRef } from 'react';
 import gsap from 'gsap';
 import { Group } from 'three';
 import { PieceMesh } from '@/components/pieces/piece-mesh';
+import { cellPosition } from './board-grid';
+import { useTheme } from '@/lib/theme/context';
 import { useMotion } from '@/lib/motion/use-motion';
 import type { Piece } from '@/lib/game/pieces';
+import type { VariantDef } from '@/lib/game/variants';
 
 interface PlacementGhostProps {
+  variant: VariantDef;
   targetIdx: number;
-  cellPitch: number;
   piece: Piece;
 }
 
-function cellWorld(idx: number, pitch: number): [number, number, number] {
-  const row = Math.floor(idx / 4);
-  const col = idx % 4;
-  return [(col - 1.5) * pitch, 0, (row - 1.5) * pitch];
-}
-
-export function PlacementGhost({ targetIdx, cellPitch, piece }: PlacementGhostProps) {
+export function PlacementGhost({ variant, targetIdx, piece }: PlacementGhostProps) {
+  const { theme } = useTheme();
   const motion = useMotion();
   const groupRef = useRef<Group>(null);
   const placed = useRef(false);
-  const [x, , z] = cellWorld(targetIdx, cellPitch);
+  const pitch = theme.piece.cellPitch * variant.worldScale;
+  const [x, , z] = cellPosition(targetIdx, variant.boardSize, pitch);
 
   // Drive position imperatively only. Binding a declarative `position` prop to
   // x/z makes React snap the group to the new cell on re-render, which fights
@@ -52,7 +51,7 @@ export function PlacementGhost({ targetIdx, cellPitch, piece }: PlacementGhostPr
 
   return (
     <group ref={groupRef}>
-      <PieceMesh piece={piece} ghost interactive={false} />
+      <PieceMesh variant={variant} piece={piece} ghost interactive={false} />
     </group>
   );
 }

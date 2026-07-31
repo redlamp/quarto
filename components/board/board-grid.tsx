@@ -5,9 +5,11 @@ import { AnimatedBoardCell } from './animated-board-cell';
 import { PlacementGhost } from './placement-ghost';
 import { useTheme } from '@/lib/theme/context';
 import { useFlightStore } from '@/lib/state/flight-store';
+import type { VariantDef } from '@/lib/game/variants';
 import type { Cell } from '@/lib/game/win';
 
 export interface BoardGridProps {
+  variant: VariantDef;
   cells: readonly Cell[];
   pendingPlace: number | null;
   ghostPiece: number | null;
@@ -20,13 +22,15 @@ export interface BoardGridProps {
   onDeselectHandoff: () => void;
 }
 
-function cellPosition(idx: number, pitch: number): [number, number, number] {
-  const row = Math.floor(idx / 4);
-  const col = idx % 4;
-  return [(col - 1.5) * pitch, 0, (row - 1.5) * pitch];
+export function cellPosition(idx: number, size: number, pitch: number): [number, number, number] {
+  const row = Math.floor(idx / size);
+  const col = idx % size;
+  const half = (size - 1) / 2;
+  return [(col - half) * pitch, 0, (row - half) * pitch];
 }
 
 export function BoardGrid({
+  variant,
   cells,
   pendingPlace,
   ghostPiece,
@@ -38,9 +42,11 @@ export function BoardGrid({
   onDeselectHandoff,
 }: BoardGridProps) {
   const { theme } = useTheme();
-  const { cellPitch, cellSize } = theme.piece;
+  const size = variant.boardSize;
+  const pitch = theme.piece.cellPitch * variant.worldScale;
+  const cellSize = theme.piece.cellSize * variant.worldScale;
   const c = theme.colors;
-  const indices = useMemo(() => Array.from({ length: 16 }, (_, i) => i), []);
+  const indices = useMemo(() => Array.from({ length: size * size }, (_, i) => i), [size]);
   const winCells = useMemo(() => winLine ?? [], [winLine]);
   const winSet = useMemo(() => new Set(winCells), [winCells]);
   const flyingCell = useFlightStore((s) => s.flyingCell);
@@ -59,7 +65,7 @@ export function BoardGrid({
   return (
     <group>
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[cellPitch * 4 + 0.4, cellPitch * 4 + 0.4]} />
+        <planeGeometry args={[pitch * size + 0.4, pitch * size + 0.4]} />
         <meshStandardMaterial
           color={c.boardSurface}
           roughness={0.9}
@@ -74,8 +80,9 @@ export function BoardGrid({
         return (
           <AnimatedBoardCell
             key={idx}
-            position={cellPosition(idx, cellPitch)}
-            cellPitch={cellPitch}
+            variant={variant}
+            position={cellPosition(idx, size, pitch)}
+            cellPitch={pitch}
             cellSize={cellSize}
             piece={piece}
             isPending={pendingPlace === idx}
@@ -95,7 +102,7 @@ export function BoardGrid({
       })}
 
       {ghostTarget !== null && ghostPiece !== null && (
-        <PlacementGhost targetIdx={ghostTarget} cellPitch={cellPitch} piece={ghostPiece} />
+        <PlacementGhost variant={variant} targetIdx={ghostTarget} piece={ghostPiece} />
       )}
     </group>
   );

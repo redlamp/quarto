@@ -21,7 +21,8 @@ const BoardCanvas = dynamic(
 );
 
 export function GameShell() {
-  const { state, moves, restart } = useQuartoClient();
+  const variantId = useUiStore((s) => s.variantId);
+  const { state, moves, restart } = useQuartoClient(variantId);
   const opponent = useUiStore((s) => s.opponent);
   const lastOpponent = useRef(opponent);
 

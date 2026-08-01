@@ -1,12 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Vector2 } from 'three';
+import { ExtrudeGeometry, Path, Shape, Vector2 } from 'three';
 import { Outlines, RoundedBox } from '@react-three/drei';
 import { visualParamsOf, type VariantDef } from '@/lib/game/variants';
 import type { Piece } from '@/lib/game/pieces';
 import { useTheme } from '@/lib/theme/context';
-import { getSoftNoiseTexture } from '@/lib/three/soft-noise-texture';
 
 interface PieceMeshProps {
   variant: VariantDef;
@@ -28,6 +27,7 @@ const NO_RAYCAST = () => null;
 
 const OUTLINE_THICKNESS = 0.05;
 const EDGE_RADIUS = 0.06;
+const SMALL_FILLET = 0.02;
 const CLAY_ENV_INTENSITY = 0.35;
 const RADIAL_SEGMENTS = 48;
 const FILLET_SEGMENTS = 6;
@@ -49,15 +49,12 @@ const BASE_OVERHANG = 1.35;
 const HUE_COLORS = ['#c9772e', '#3e6fae'] as const;
 const HUE_MIX = 0.55;
 
-// Hollow plug ("gem"): rounded rim to match the pieces, plus a soft-touch
-// plastic finish — clearcoat for a glossy-but-not-mirror reflection over a
-// matte base, and a faint noise roughnessMap so it reads like device plastic.
-const PLUG_FILLET = 0.02;
-const PLUG_ROUGHNESS = 0.55;
-const PLUG_CLEARCOAT = 1;
-const PLUG_CLEARCOAT_ROUGHNESS = 0.25;
-const PLUG_ENV_INTENSITY = 1.1;
-const PLUG_SINK = 0.005;
+// Hollow trait: a real bore carved into the top (like the wooden originals) —
+// round pieces get it lathed into the profile, square pieces get a solid
+// lower body plus an extruded wall ring with a circular bore.
+const BORE_RADIUS_ROUND = 0.55; // × outer radius
+const BORE_RADIUS_SQUARE = 0.6;
+const BORE_DEPTH = 0.42; // × piece height
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -73,24 +70,61 @@ function mixHex(a: string, b: string, t: number): string {
   return `#${(((ch(16) << 16) | (ch(8) << 8) | ch(0)) >>> 0).toString(16).padStart(6, '0')}`;
 }
 
-// Lathe profile for a cylinder with quarter-arc fillets on both rims.
-// Side stays at full `radius`; only the top + bottom edges curve in.
-function roundedCylinderProfile(radius: number, height: number, fillet: number): Vector2[] {
+// Quarter-arc helper: appends FILLET_SEGMENTS+1 points of a fillet arc
+// centered at (cx, cy), sweeping from angle `from` to `to` (radians).
+function arc(pts: Vector2[], cx: number, cy: number, r: number, from: number, to: number): void {
+  for (let i = 0; i <= FILLET_SEGMENTS; i++) {
+    const a = from + (i / FILLET_SEGMENTS) * (to - from);
+    pts.push(new Vector2(cx + Math.cos(a) * r, cy + Math.sin(a) * r));
+  }
+}
+
+// Lathe profile for a cylinder with quarter-arc fillets on both rims. When
+// `bore` is set, the profile turns in at the top rim and descends into a real
+// cavity instead of closing across the top.
+function cylinderProfile(
+  radius: number,
+  height: number,
+  fillet: number,
+  bore: { radius: number; depth: number } | null,
+): Vector2[] {
   const pts: Vector2[] = [];
   pts.push(new Vector2(0, 0));
   pts.push(new Vector2(radius - fillet, 0));
-  for (let i = 1; i <= FILLET_SEGMENTS; i++) {
-    const a = (i / FILLET_SEGMENTS) * (Math.PI / 2) - Math.PI / 2;
-    pts.push(new Vector2(radius - fillet + Math.cos(a) * fillet, fillet + Math.sin(a) * fillet));
+  // Bottom rim: quarter arc out to the full radius.
+  arc(pts, radius - fillet, fillet, fillet, -Math.PI / 2, 0);
+  // Top rim: quarter arc curving in across the top.
+  arc(pts, radius - fillet, height - fillet, fillet, 0, Math.PI / 2);
+  if (!bore) {
+    pts.push(new Vector2(0, height));
+    return pts;
   }
-  for (let i = 0; i <= FILLET_SEGMENTS; i++) {
-    const a = (i / FILLET_SEGMENTS) * (Math.PI / 2);
-    pts.push(
-      new Vector2(radius - fillet + Math.cos(a) * fillet, height - fillet + Math.sin(a) * fillet),
-    );
-  }
-  pts.push(new Vector2(0, height));
+  // Across the rim to the bore mouth, small fillet turning down into it.
+  arc(pts, bore.radius + SMALL_FILLET, height - SMALL_FILLET, SMALL_FILLET, Math.PI / 2, Math.PI);
+  const floorY = height - bore.depth;
+  // Down the bore wall, small fillet onto the cavity floor.
+  arc(pts, bore.radius + SMALL_FILLET, floorY + SMALL_FILLET, SMALL_FILLET, Math.PI, Math.PI * 1.5);
+  pts.push(new Vector2(0, floorY));
   return pts;
+}
+
+// Rounded-corner square outline with a circular hole — the wall ring of a
+// hollow square piece.
+function squareRingShape(half: number, corner: number, boreRadius: number): Shape {
+  const shape = new Shape();
+  shape.moveTo(-half + corner, -half);
+  shape.lineTo(half - corner, -half);
+  shape.quadraticCurveTo(half, -half, half, -half + corner);
+  shape.lineTo(half, half - corner);
+  shape.quadraticCurveTo(half, half, half - corner, half);
+  shape.lineTo(-half + corner, half);
+  shape.quadraticCurveTo(-half, half, -half, half - corner);
+  shape.lineTo(-half, -half + corner);
+  shape.quadraticCurveTo(-half, -half, -half + corner, -half);
+  const hole = new Path();
+  hole.absarc(0, 0, boreRadius, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  return shape;
 }
 
 export function PieceMesh({
@@ -114,6 +148,7 @@ export function PieceMesh({
   const radius = p.radius * girthMul * s;
   const edgeRadius = Math.min(EDGE_RADIUS, radius * 0.45);
   const square = v.shape === 'square';
+  const boreDepth = height * BORE_DEPTH;
 
   const opacity = ghost ? 0.8 : dimmed ? 0.35 : 1;
   const transparent = ghost || dimmed;
@@ -127,18 +162,31 @@ export function PieceMesh({
   // Ring/base contrast: light pieces get dark accents and vice versa.
   const accentColor = v.toneT <= 0.5 ? c.pieceDark : c.pieceLight;
 
-  const cylinderProfile = useMemo(
-    () => roundedCylinderProfile(radius, height, edgeRadius),
-    [radius, height, edgeRadius],
+  const latheProfile = useMemo(
+    () =>
+      cylinderProfile(
+        radius,
+        height,
+        edgeRadius,
+        v.hollow ? { radius: radius * BORE_RADIUS_ROUND, depth: boreDepth } : null,
+      ),
+    [radius, height, edgeRadius, v.hollow, boreDepth],
   );
 
-  const hollowSizeXZ = square ? radius * 1.15 : radius * 0.6;
-  const plugDepth = p.hollowDepth * s;
-  const plugProfile = useMemo(
-    () => roundedCylinderProfile(hollowSizeXZ, plugDepth, PLUG_FILLET),
-    [hollowSizeXZ, plugDepth],
-  );
-  const noiseMap = useMemo(() => getSoftNoiseTexture(), []);
+  // Hollow square = solid lower body + extruded wall ring. The ring overlaps
+  // the body by edgeRadius so the body's top-edge fillet stays hidden behind
+  // the ring's straight outer wall.
+  const ringOverlap = edgeRadius;
+  const bodyHeight = Math.max(height - boreDepth, edgeRadius * 2);
+  const ringGeometry = useMemo(() => {
+    if (!(v.hollow && square)) return null;
+    const shape = squareRingShape(radius, edgeRadius, radius * BORE_RADIUS_SQUARE);
+    return new ExtrudeGeometry(shape, {
+      depth: height - bodyHeight + ringOverlap,
+      bevelEnabled: false,
+      curveSegments: 24,
+    });
+  }, [v.hollow, square, radius, edgeRadius, height, bodyHeight, ringOverlap]);
 
   const renderClayMaterial = (meshColor: string) => (
     <meshStandardMaterial
@@ -146,20 +194,6 @@ export function PieceMesh({
       roughness={p.roughness}
       metalness={p.metalness}
       envMapIntensity={CLAY_ENV_INTENSITY}
-      transparent={transparent}
-      opacity={opacity}
-    />
-  );
-
-  const renderPlugMaterial = () => (
-    <meshPhysicalMaterial
-      color={c.pieceHollowInset}
-      roughness={PLUG_ROUGHNESS}
-      roughnessMap={noiseMap ?? undefined}
-      metalness={0}
-      clearcoat={PLUG_CLEARCOAT}
-      clearcoatRoughness={PLUG_CLEARCOAT_ROUGHNESS}
-      envMapIntensity={PLUG_ENV_INTENSITY}
       transparent={transparent}
       opacity={opacity}
     />
@@ -173,7 +207,7 @@ export function PieceMesh({
         key={key}
         position={[0, centerY, 0]}
         args={[radius * 2 * RING_OVERHANG, ringHeight, radius * 2 * RING_OVERHANG]}
-        radius={PLUG_FILLET}
+        radius={SMALL_FILLET}
         smoothness={2}
         castShadow
         receiveShadow
@@ -197,25 +231,54 @@ export function PieceMesh({
   return (
     <group {...handlers}>
       {square ? (
-        <RoundedBox
-          position={[0, height / 2, 0]}
-          args={[radius * 2, height, radius * 2]}
-          radius={edgeRadius}
-          smoothness={4}
-          castShadow
-          receiveShadow
-          {...raycastProp}
-        >
-          {renderClayMaterial(color)}
-          {outline}
-        </RoundedBox>
+        v.hollow && ringGeometry ? (
+          <>
+            <RoundedBox
+              position={[0, bodyHeight / 2, 0]}
+              args={[radius * 2, bodyHeight, radius * 2]}
+              radius={edgeRadius}
+              smoothness={4}
+              castShadow
+              receiveShadow
+              {...raycastProp}
+            >
+              {renderClayMaterial(color)}
+              {outline}
+            </RoundedBox>
+            {/* Extrusion runs along +z; rotated so it climbs +y from the top
+                of the body (minus overlap) to the piece's full height. */}
+            <mesh
+              position={[0, bodyHeight - ringOverlap, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              castShadow
+              receiveShadow
+              {...raycastProp}
+            >
+              <primitive object={ringGeometry} attach="geometry" />
+              {renderClayMaterial(color)}
+              {outline}
+            </mesh>
+          </>
+        ) : (
+          <RoundedBox
+            position={[0, height / 2, 0]}
+            args={[radius * 2, height, radius * 2]}
+            radius={edgeRadius}
+            smoothness={4}
+            castShadow
+            receiveShadow
+            {...raycastProp}
+          >
+            {renderClayMaterial(color)}
+            {outline}
+          </RoundedBox>
+        )
       ) : (
         // LatheGeometry revolves a 2D profile around the Y axis. Profile gives
         // a quarter-arc fillet at the top + bottom rim while keeping the side
-        // at full radius — matches the rounded-edge feel of RoundedBox without
-        // tapering the silhouette into a spool shape.
+        // at full radius; hollow pieces carve a real bore into the top.
         <mesh castShadow receiveShadow {...raycastProp}>
-          <latheGeometry args={[cylinderProfile, RADIAL_SEGMENTS]} />
+          <latheGeometry args={[latheProfile, RADIAL_SEGMENTS]} />
           {renderClayMaterial(color)}
           {outline}
         </mesh>
@@ -234,7 +297,7 @@ export function PieceMesh({
           <RoundedBox
             position={[0, (BASE_HEIGHT * s) / 2, 0]}
             args={[radius * 2 * BASE_OVERHANG, BASE_HEIGHT * s, radius * 2 * BASE_OVERHANG]}
-            radius={PLUG_FILLET}
+            radius={SMALL_FILLET}
             smoothness={2}
             receiveShadow
             {...raycastProp}
@@ -252,25 +315,6 @@ export function PieceMesh({
               ]}
             />
             {renderClayMaterial(accentColor)}
-          </mesh>
-        ))}
-
-      {v.hollow &&
-        (square ? (
-          <RoundedBox
-            position={[0, height + plugDepth / 2 - PLUG_SINK, 0]}
-            args={[hollowSizeXZ, plugDepth, hollowSizeXZ]}
-            radius={PLUG_FILLET}
-            smoothness={4}
-            receiveShadow
-            {...raycastProp}
-          >
-            {renderPlugMaterial()}
-          </RoundedBox>
-        ) : (
-          <mesh position={[0, height - PLUG_SINK, 0]} receiveShadow {...raycastProp}>
-            <latheGeometry args={[plugProfile, RADIAL_SEGMENTS]} />
-            {renderPlugMaterial()}
           </mesh>
         ))}
     </group>

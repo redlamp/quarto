@@ -10,6 +10,8 @@ test('variant menu switches the game and persists across reloads', async ({ page
   await page.getByRole('option', { name: '6×6 - 4 Mixed Traits' }).click();
   await expect(page.getByLabel('Variant')).toContainText('6×6 - 4 Mixed Traits');
   await expect(page.getByText(/Player 1 — pick/i)).toBeVisible();
+  // The win declaration matches the line length (6 → Sesto).
+  await expect(page.getByRole('button', { name: /Sesto!/ })).toBeVisible();
 
   // Persists via localStorage.
   await page.reload();

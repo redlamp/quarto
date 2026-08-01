@@ -97,11 +97,11 @@ export function BottomHud({ state, moves }: BottomHudProps) {
             }}
             className="quarto-glow rounded-xl border-2 border-white/60 bg-[#c9a866] px-10 py-5 text-xl font-bold tracking-widest text-[#1e2128] uppercase shadow-2xl"
           >
-            Quarto!
+            {variant.call}!
           </button>
         ) : (
           <Button size="lg" variant="outline" disabled>
-            Quarto!
+            {variant.call}!
           </Button>
         )}
       </div>

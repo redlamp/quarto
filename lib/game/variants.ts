@@ -24,6 +24,9 @@ export interface VariantDef {
   id: string;
   label: string;
   description: string;
+  // The declaration a player shouts to claim a win — Italian ordinal matching
+  // the line length ("Quarto" = fourth), no trailing "!".
+  call: string;
   // Board is boardSize × boardSize; a win is boardSize in a line.
   boardSize: number;
   traits: readonly TraitDef[];
@@ -43,7 +46,8 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
   makeVariant({
     id: 'duo',
     label: '2×2 - 2 Traits',
-    description: '4 pieces, 2 binary traits. Any 2-in-a-line sharing a trait wins.',
+    description: '4 pieces, 2 binary traits. Any 2-in-a-line sharing a trait wins. Call "Secondo!"',
+    call: 'Secondo',
     boardSize: 2,
     traits: [
       { name: 'shape', label: 'Shape', values: ['round', 'square'], encode: ['shape'] },
@@ -55,7 +59,9 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
   makeVariant({
     id: 'trio',
     label: '3×3 - 3 Traits',
-    description: '8 pieces on 9 cells — one cell stays empty; an exhausted rack is a draw.',
+    description:
+      '8 pieces on 9 cells — one cell stays empty; an exhausted rack is a draw. Call "Terzo!"',
+    call: 'Terzo',
     boardSize: 3,
     traits: [
       { name: 'height', label: 'Height', values: ['short', 'tall'], encode: ['height'] },
@@ -69,6 +75,7 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
     id: 'classic',
     label: '4×4 - Classic',
     description: 'Canonical Quarto: height, tone, shape, top. 16 pieces.',
+    call: 'Quarto',
     boardSize: 4,
     traits: [
       { name: 'height', label: 'Height', values: ['short', 'tall'], encode: ['height'] },
@@ -86,6 +93,7 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
     id: 'alt',
     label: '4×4 - Alt Traits',
     description: 'Classic rules, alternative traits: girth and band replace height and top.',
+    call: 'Quarto',
     boardSize: 4,
     traits: [
       { name: 'girth', label: 'Girth', values: ['slim', 'wide'], encode: ['girth'] },
@@ -99,7 +107,9 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
   makeVariant({
     id: 'penta',
     label: '5×5 - 2×5 Traits',
-    description: '25 pieces: 5 silhouettes × 5 shades (each shade step is taller and darker).',
+    description:
+      '25 pieces: 5 silhouettes × 5 shades (each shade step is taller and darker). Call "Quinto!"',
+    call: 'Quinto',
     boardSize: 5,
     traits: [
       {
@@ -121,7 +131,9 @@ export const VARIANTS: readonly VariantDef[] = Object.freeze([
   makeVariant({
     id: 'hexa',
     label: '6×6 - 4 Mixed Traits',
-    description: '36 pieces: two binary traits (height, top) × two ternary (tone, shape).',
+    description:
+      '36 pieces: two binary traits (height, top) × two ternary (tone, shape). Call "Sesto!"',
+    call: 'Sesto',
     boardSize: 6,
     traits: [
       { name: 'height', label: 'Height', values: ['short', 'tall'], encode: ['height'] },

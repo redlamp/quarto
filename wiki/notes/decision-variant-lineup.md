@@ -41,6 +41,8 @@ tags:
 
 Also considered and rejected for now: finish matte/gloss (vanishes under flat lighting), hue pairs (color-only, breaks the redundancy rule), corner notch and cap color (top-only visibility, same flaw as hollow), tilt (reads as a rendering glitch). Worth revisiting if `alt` playtests well.
 
+**Win declarations.** "Quarto" is Italian for fourth, so each variant's call matches its line length with the same Italian ordinal series: Secondo (2), Terzo (3), Quarto (4, both 4×4s), Quinto (5), Sesto (6). Carried on `VariantDef.call`; the call button and drawer descriptions use it. Extends [[decision-must-call-quarto-with-e4-hint]] — the must-call rule is unchanged, only the word scales.
+
 **Menu.** Variant switcher lives in the top bar (quick playtest swaps) and mirrors into the settings drawer. Switching rebuilds the boardgame.io client from `createQuartoGame(variant)` — a fresh game, since mid-game conversion is meaningless. Persisted in localStorage via the ui-store.
 
 **Early gameplay expectations to verify.** duo is near-degenerate (any two non-opposite pieces share a trait — first placement pair usually wins); penta's 5-value traits make shared lines rare, likely draw-heavy; hexa sits between. That spread is the point of the playtest.

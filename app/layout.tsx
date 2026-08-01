@@ -11,7 +11,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    // suppressHydrationWarning: browser extensions (e.g. GA opt-out) stamp
+    // attributes onto <html> before React hydrates; only this element's
+    // attribute mismatches are suppressed, not its children.
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <ReactiveThemeProvider>{children}</ReactiveThemeProvider>
       </body>

@@ -54,6 +54,18 @@ describe('variants', () => {
     }
   });
 
+  it('win declarations match the line length (Italian ordinals)', () => {
+    const calls = Object.fromEntries(VARIANTS.map((v) => [v.id, v.call]));
+    expect(calls).toEqual({
+      duo: 'Secondo',
+      trio: 'Terzo',
+      classic: 'Quarto',
+      alt: 'Quarto',
+      penta: 'Quinto',
+      hexa: 'Sesto',
+    });
+  });
+
   it('getVariant falls back to classic for unknown ids', () => {
     expect(getVariant('nope').id).toBe('classic');
     expect(getVariant(undefined).id).toBe('classic');

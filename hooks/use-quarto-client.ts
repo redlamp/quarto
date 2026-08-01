@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Client } from 'boardgame.io/client';
 import { createQuartoGame, type QuartoState } from '@/lib/game/definition';
-import { getVariant } from '@/lib/game/variants';
+import { buildVariant, type VariantConfig } from '@/lib/game/variants';
 import type { Piece } from '@/lib/game/pieces';
 
 interface QuartoMoves {
@@ -26,27 +26,33 @@ export interface QuartoClient {
   restart: () => void;
 }
 
-function createClient(variantId: string): ClientType {
-  const c = Client({ game: createQuartoGame(getVariant(variantId)), numPlayers: 2, debug: false });
+function createClient(config: VariantConfig): ClientType {
+  const variant = buildVariant(config.boardSize, config.traitIds);
+  const c = Client({ game: createQuartoGame(variant), numPlayers: 2, debug: false });
   c.start();
   return c;
 }
 
-export function useQuartoClient(variantId: string): QuartoClient {
-  const [client, setClient] = useState<ClientType>(() => createClient(variantId));
+export function useQuartoClient(config: VariantConfig): QuartoClient {
+  const key = buildVariant(config.boardSize, config.traitIds).id;
+  const [client, setClient] = useState<ClientType>(() => createClient(config));
   const [state, setState] = useState<ClientState | null>(() => client.getState() ?? null);
-  const lastVariantId = useRef(variantId);
-
-  // Variant switch = new game definition, so the client is rebuilt from
-  // scratch (fresh board, fresh rack).
+  const lastKey = useRef(key);
+  const configRef = useRef(config);
   useEffect(() => {
-    if (lastVariantId.current === variantId) return;
-    lastVariantId.current = variantId;
+    configRef.current = config;
+  }, [config]);
+
+  // Board size or trait selection switch = new game definition, so the client
+  // is rebuilt from scratch (fresh board, fresh rack).
+  useEffect(() => {
+    if (lastKey.current === key) return;
+    lastKey.current = key;
     setClient((prev) => {
       prev.stop?.();
-      return createClient(variantId);
+      return createClient(configRef.current);
     });
-  }, [variantId]);
+  }, [key]);
 
   useEffect(() => {
     // boardgame.io invokes the callback immediately on subscribe for local
@@ -60,7 +66,7 @@ export function useQuartoClient(variantId: string): QuartoClient {
   const restart = useCallback(() => {
     setClient((prev) => {
       prev.stop?.();
-      return createClient(lastVariantId.current);
+      return createClient(configRef.current);
     });
   }, []);
 

@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { decideRandom } from './random';
-import { getVariant, piecesOf } from '@/lib/game/variants';
+import { buildVariant, piecesOf } from '@/lib/game/variants';
 import type { QuartoState } from '@/lib/game/definition';
 
 function emptyState(): QuartoState {
+  const classic = buildVariant(4);
   return {
-    variantId: 'classic',
+    variant: classic.config,
     board: Array.from({ length: 16 }, () => null),
-    available: piecesOf(getVariant('classic')).slice(),
+    available: piecesOf(classic).slice(),
     handedPiece: null,
     pendingPlace: null,
     pendingHandoff: null,

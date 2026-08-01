@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { Client } from 'boardgame.io/client';
 import { createQuartoGame, Quarto } from './definition';
-import { getVariant } from './variants';
+import { buildVariant, type VariantDef } from './variants';
 
-function newClient(variantId?: string) {
-  const game = variantId ? createQuartoGame(getVariant(variantId)) : Quarto;
+function newClient(variant?: VariantDef) {
+  const game = variant ? createQuartoGame(variant) : Quarto;
   const client = Client({ game, numPlayers: 2 });
   client.start();
   const m = client.moves as Record<string, (...args: unknown[]) => void>;
@@ -123,22 +123,24 @@ describe('Quarto game definition', () => {
     client.stop();
   });
 
-  it('stamps the variant id into game state', () => {
-    const { client } = newClient('hexa');
+  it('stamps the variant config into game state', () => {
+    const hexa = buildVariant(6);
+    const { client } = newClient(hexa);
     const state = client.getState();
-    expect(state?.G.variantId).toBe('hexa');
+    expect(state?.G.variant).toEqual(hexa.config);
     expect(state?.G.board.length).toBe(36);
-    expect(state?.G.available.length).toBe(36);
+    // 6 binary traits → 64 pieces (more than the 36 cells; board-full ends it).
+    expect(state?.G.available.length).toBe(64);
     client.stop();
   });
 
-  it('duo variant: a 2-in-a-line sharing a trait wins', () => {
-    const { client, m } = newClient('duo');
-    m.selectHandoff?.(0); // round light → P1
+  it('2×2 board: a 2-in-a-line sharing a trait wins with "Secondo"', () => {
+    const { client, m } = newClient(buildVariant(2)); // traits: tone, shape
+    m.selectHandoff?.(0); // light round → P1
     m.confirmHandoff?.();
     m.selectCell?.(0);
     m.confirmPlace?.();
-    m.selectHandoff?.(1); // square light → P0
+    m.selectHandoff?.(2); // light square → P0
     m.confirmHandoff?.();
     m.selectCell?.(1);
     m.confirmPlace?.();
@@ -146,12 +148,12 @@ describe('Quarto game definition', () => {
     const state = client.getState();
     expect(state?.G.winner?.player).toBe('0');
     expect(state?.G.winner?.line).toEqual([0, 1]);
-    expect(state?.G.winner?.shared).toContainEqual({ trait: 1, value: 0 });
+    expect(state?.G.winner?.shared).toContainEqual({ trait: 0, value: 0 });
     client.stop();
   });
 
-  it('trio variant: exhausting the 8-piece rack on the 9-cell board is a draw', () => {
-    const { client, m } = newClient('trio');
+  it('3×3 board: exhausting the 8-piece rack on the 9-cell board is a draw', () => {
+    const { client, m } = newClient(buildVariant(3));
     const play = (piece: number, cell: number) => {
       m.selectHandoff?.(piece);
       m.confirmHandoff?.();

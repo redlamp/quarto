@@ -27,7 +27,8 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-[var(--color-snow)] p-6 shadow-lg transition-transform ease-in-out',
+  // overflow-y-auto: drawer content (settings groups) can exceed the viewport.
+  'fixed z-50 gap-4 overflow-y-auto bg-[var(--color-snow)] p-6 shadow-lg transition-transform ease-in-out',
   {
     variants: {
       side: {

@@ -3,7 +3,7 @@ tags:
   - domain/architecture
   - domain/rules
   - domain/visual
-  - status/adopted
+  - status/superseded
   - origin/playtest-range-2026-07-31
 ---
 
@@ -48,5 +48,7 @@ Also considered and rejected for now: finish matte/gloss (vanishes under flat li
 **Early gameplay expectations to verify.** duo is near-degenerate (any two non-opposite pieces share a trait — first placement pair usually wins); penta's 5-value traits make shared lines rare, likely draw-heavy; hexa sits between. That spread is the point of the playtest.
 
 **Date.** 2026-07-31.
+
+**Superseded 2026-08-01** by [[decision-trait-catalog-binary]]: playtest feedback keeps every trait binary — bigger boards add new traits from a catalog instead of raising an existing trait's arity, and the trait set per board size is player-selectable. Win declarations and the draw-rule generalization carry over unchanged.
 
 Linked from [[decisions]].

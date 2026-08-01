@@ -2,10 +2,10 @@ import type { Game, Move } from 'boardgame.io';
 import { INVALID_MOVE } from 'boardgame.io/core';
 import type { Piece } from './pieces';
 import {
-  DEFAULT_VARIANT_ID,
-  getVariant,
+  buildVariant,
   piecesOf,
   type SharedTrait,
+  type VariantConfig,
   type VariantDef,
 } from './variants';
 import { findWin, isBoardFull, type Cell } from './win';
@@ -19,7 +19,7 @@ export interface QuartoWinner {
 }
 
 export interface QuartoState {
-  variantId: string;
+  variant: VariantConfig;
   board: Cell[];
   available: Piece[];
   handedPiece: Piece | null;
@@ -52,7 +52,7 @@ export function createQuartoGame(variant: VariantDef): Game<QuartoState> {
   const cellCount = variant.boardSize * variant.boardSize;
 
   const initialState = (): QuartoState => ({
-    variantId: variant.id,
+    variant: variant.config,
     board: Array.from({ length: cellCount }, () => null),
     available: piecesOf(variant).slice(),
     handedPiece: null,
@@ -181,4 +181,4 @@ export function createQuartoGame(variant: VariantDef): Game<QuartoState> {
 }
 
 // Canonical 4×4 game — default variant.
-export const Quarto: Game<QuartoState> = createQuartoGame(getVariant(DEFAULT_VARIANT_ID));
+export const Quarto: Game<QuartoState> = createQuartoGame(buildVariant(4));

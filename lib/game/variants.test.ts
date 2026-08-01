@@ -1,95 +1,129 @@
 import { describe, it, expect } from 'vitest';
 import {
-  VARIANTS,
-  getVariant,
+  BOARD_SIZES,
+  CALLS,
+  DEFAULT_TRAITS,
+  TRAIT_CATALOG,
+  buildVariant,
+  describePiece,
+  getTrait,
   piecesOf,
   traitValuesOf,
-  describePiece,
+  variantFromConfig,
   visualParamsOf,
 } from './variants';
 
-describe('variants', () => {
-  it('registers the full playtest lineup', () => {
-    expect(VARIANTS.map((v) => v.id)).toEqual(['duo', 'trio', 'classic', 'alt', 'penta', 'hexa']);
-  });
-
-  it('piece counts follow the trait product', () => {
-    const counts = Object.fromEntries(VARIANTS.map((v) => [v.id, v.pieceCount]));
-    expect(counts).toEqual({ duo: 4, trio: 8, classic: 16, alt: 16, penta: 25, hexa: 36 });
-  });
-
-  it('piece count matches board cells except the deliberate trio mismatch', () => {
-    for (const v of VARIANTS) {
-      const cells = v.boardSize * v.boardSize;
-      if (v.id === 'trio') expect(v.pieceCount).toBe(cells - 1);
-      else expect(v.pieceCount).toBe(cells);
+describe('trait catalog', () => {
+  it('every trait is binary with single-word expression labels', () => {
+    for (const t of TRAIT_CATALOG) {
+      expect(t.values).toHaveLength(2);
+      for (const label of t.values) expect(label).not.toMatch(/\s/);
     }
   });
 
-  it('every piece has a unique trait vector and a unique description', () => {
-    for (const v of VARIANTS) {
-      const vectors = new Set(piecesOf(v).map((p) => traitValuesOf(v, p).join(',')));
-      const descriptions = new Set(piecesOf(v).map((p) => describePiece(v, p)));
-      expect(vectors.size).toBe(v.pieceCount);
-      expect(descriptions.size).toBe(v.pieceCount);
-    }
+  it('trait ids and visual channels are unique — one channel per trait', () => {
+    expect(new Set(TRAIT_CATALOG.map((t) => t.id)).size).toBe(TRAIT_CATALOG.length);
+    expect(new Set(TRAIT_CATALOG.map((t) => t.encode)).size).toBe(TRAIT_CATALOG.length);
   });
 
-  it('classic mixed-radix layout reproduces the canonical 4-bit encoding', () => {
-    const classic = getVariant('classic');
-    expect(traitValuesOf(classic, 0b0000)).toEqual([0, 0, 0, 0]);
-    expect(traitValuesOf(classic, 0b1111)).toEqual([1, 1, 1, 1]);
-    expect(traitValuesOf(classic, 0b0101)).toEqual([1, 0, 1, 0]);
-    expect(describePiece(classic, 0b0000)).toBe('short light round solid');
-    expect(describePiece(classic, 0b1111)).toBe('tall dark square hollow');
-  });
-
-  it('trait value labels are single words (the HUD splits on spaces)', () => {
-    for (const v of VARIANTS) {
-      for (const trait of v.traits) {
-        for (const label of trait.values) {
-          expect(label).not.toMatch(/\s/);
-        }
+  it('conflicts are symmetric', () => {
+    for (const t of TRAIT_CATALOG) {
+      for (const other of t.conflictsWith) {
+        expect(getTrait(other)?.conflictsWith).toContain(t.id);
       }
     }
   });
 
-  it('win declarations match the line length (Italian ordinals)', () => {
-    const calls = Object.fromEntries(VARIANTS.map((v) => [v.id, v.call]));
-    expect(calls).toEqual({
-      duo: 'Secondo',
-      trio: 'Terzo',
-      classic: 'Quarto',
-      alt: 'Quarto',
-      penta: 'Quinto',
-      hexa: 'Sesto',
-    });
+  it('default trait sets contain no conflicting pairs and match the board size', () => {
+    for (const size of BOARD_SIZES) {
+      const ids = DEFAULT_TRAITS[size]!;
+      expect(ids.length).toBe(size);
+      for (const id of ids) {
+        const spec = getTrait(id)!;
+        for (const other of spec.conflictsWith) expect(ids).not.toContain(other);
+      }
+    }
+  });
+});
+
+describe('buildVariant', () => {
+  it('piece count is 2^traits for every default board', () => {
+    const counts = Object.fromEntries(BOARD_SIZES.map((n) => [n, buildVariant(n).pieceCount]));
+    expect(counts).toEqual({ 2: 4, 3: 8, 4: 16, 5: 32, 6: 64 });
   });
 
-  it('getVariant falls back to classic for unknown ids', () => {
-    expect(getVariant('nope').id).toBe('classic');
-    expect(getVariant(undefined).id).toBe('classic');
+  it('classic 4×4 defaults reproduce the canonical 4-bit encoding', () => {
+    const classic = buildVariant(4);
+    expect(classic.traits.map((t) => t.id)).toEqual(['height', 'tone', 'shape', 'top']);
+    expect(traitValuesOf(classic, 0b0000)).toEqual([0, 0, 0, 0]);
+    expect(traitValuesOf(classic, 0b1111)).toEqual([1, 1, 1, 1]);
+    expect(describePiece(classic, 0b0000)).toBe('short light round solid');
+    expect(describePiece(classic, 0b1111)).toBe('tall dark square hollow');
   });
 
-  it('penta shade couples height and tone for redundant encoding', () => {
-    const penta = getVariant('penta');
-    const palest = visualParamsOf(penta, 0); // shade palest
-    const deepest = visualParamsOf(penta, 5 * 4); // shade deepest (trait 1 value 4)
-    expect(palest.heightT).toBe(0);
-    expect(palest.toneT).toBe(0);
-    expect(deepest.heightT).toBe(1);
-    expect(deepest.toneT).toBe(1);
+  it('selection order does not matter — traits sort into catalog order', () => {
+    const shuffled = buildVariant(4, ['top', 'shape', 'tone', 'height']);
+    expect(shuffled.id).toBe(buildVariant(4).id);
   });
 
-  it('alt variant encodes girth and band instead of height and hollow', () => {
-    const alt = getVariant('alt');
-    const slimPlain = visualParamsOf(alt, 0);
-    expect(slimPlain.girthT).toBe(0);
-    expect(slimPlain.band).toBe(false);
-    expect(slimPlain.hollow).toBe(false);
-    const wideBanded = visualParamsOf(alt, 0b0011);
-    expect(wideBanded.girthT).toBe(1);
-    expect(wideBanded.band).toBe(true);
-    expect(wideBanded.hollow).toBe(false);
+  it('every piece has a unique description', () => {
+    for (const size of BOARD_SIZES) {
+      const v = buildVariant(size);
+      const descriptions = new Set(piecesOf(v).map((p) => describePiece(v, p)));
+      expect(descriptions.size).toBe(v.pieceCount);
+    }
+  });
+
+  it('win declarations follow the Italian ordinal series', () => {
+    expect(BOARD_SIZES.map((n) => CALLS[n])).toEqual([
+      'Secondo',
+      'Terzo',
+      'Quarto',
+      'Quinto',
+      'Sesto',
+    ]);
+    expect(buildVariant(5).call).toBe('Quinto');
+    expect(buildVariant(6).call).toBe('Sesto');
+  });
+
+  it('variantFromConfig falls back to classic defaults', () => {
+    expect(variantFromConfig(null).id).toBe(buildVariant(4).id);
+    expect(variantFromConfig({ boardSize: 6, traitIds: DEFAULT_TRAITS[6]! }).boardSize).toBe(6);
+  });
+});
+
+describe('visual params', () => {
+  it('hue tints pair with tone: light/dark × orange/blue stay distinct', () => {
+    const v = buildVariant(5); // height, tone, hue, shape, top
+    const lightOrange = visualParamsOf(v, 0b00000);
+    const darkOrange = visualParamsOf(v, 0b00010);
+    const lightBlue = visualParamsOf(v, 0b00100);
+    const darkBlue = visualParamsOf(v, 0b00110);
+    expect([lightOrange.toneT, lightOrange.hueT]).toEqual([0, 0]);
+    expect([darkOrange.toneT, darkOrange.hueT]).toEqual([1, 0]);
+    expect([lightBlue.toneT, lightBlue.hueT]).toEqual([0, 1]);
+    expect([darkBlue.toneT, darkBlue.hueT]).toEqual([1, 1]);
+  });
+
+  it('band, stripes, base and girth map to their own channels', () => {
+    const v = buildVariant(6, ['tone', 'shape', 'girth', 'band', 'stripes', 'base']);
+    const all = visualParamsOf(v, 0b111111);
+    expect(all.girthT).toBe(1);
+    expect(all.band).toBe(true);
+    expect(all.stripes).toBe(true);
+    expect(all.base).toBe(true);
+    const none = visualParamsOf(v, 0);
+    expect(none.girthT).toBe(0);
+    expect(none.band).toBe(false);
+    expect(none.stripes).toBe(false);
+    expect(none.base).toBe(false);
+  });
+
+  it('variants without height or hue render neutral defaults', () => {
+    const v = buildVariant(2); // tone, shape
+    const params = visualParamsOf(v, 0);
+    expect(params.heightT).toBe(0.5);
+    expect(params.hueT).toBeNull();
+    expect(params.girthT).toBeNull();
   });
 });

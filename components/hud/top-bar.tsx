@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { VARIANTS } from '@/lib/game/variants';
+import { BOARD_SIZES, CALLS } from '@/lib/game/variants';
 import { useUiStore } from '@/lib/state/ui-store';
 import type { QuartoState } from '@/lib/game/definition';
 
@@ -36,24 +36,25 @@ function turnLabel(state: TopBarProps['state']): string {
 
 export function TopBar({ state }: TopBarProps) {
   const openDrawer = useUiStore((s) => s.openDrawer);
-  const variantId = useUiStore((s) => s.variantId);
-  const setVariantId = useUiStore((s) => s.setVariantId);
+  const boardSize = useUiStore((s) => s.boardSize);
+  const setBoardSize = useUiStore((s) => s.setBoardSize);
   return (
     <header className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-6 py-4">
       <div className="flex items-center gap-3">
         <div className="font-mono text-sm tracking-tight text-[var(--color-ink)]">Quarto</div>
-        {/* Variant menu — switching starts a fresh game on the new board. */}
-        <Select value={variantId} onValueChange={setVariantId}>
+        {/* Board-size menu — switching starts a fresh game on the new board.
+            Trait selection per size lives in the settings drawer. */}
+        <Select value={String(boardSize)} onValueChange={(v) => setBoardSize(Number(v))}>
           <SelectTrigger
-            aria-label="Variant"
-            className="h-8 w-44 bg-[var(--color-surface)]/40 text-xs backdrop-blur-md"
+            aria-label="Board size"
+            className="h-8 w-36 bg-[var(--color-surface)]/40 text-xs backdrop-blur-md"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {VARIANTS.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.label}
+            {BOARD_SIZES.map((n) => (
+              <SelectItem key={n} value={String(n)}>
+                {n}×{n} - {CALLS[n]}
               </SelectItem>
             ))}
           </SelectContent>

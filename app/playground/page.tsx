@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { VARIANTS } from '@/lib/game/variants';
+import { BOARD_SIZES, buildVariant } from '@/lib/game/variants';
 
 const PlaygroundCanvas = dynamic(
   () => import('@/components/canvas/playground-canvas').then((m) => m.PlaygroundCanvas),
@@ -18,17 +18,23 @@ export default function PlaygroundPage() {
           surface.
         </p>
       </header>
-      {VARIANTS.map((variant) => (
-        <section key={variant.id} className="flex flex-col gap-2">
-          <h2 className="font-mono text-sm">
-            {variant.label} — {variant.pieceCount} pieces
-          </h2>
-          <p className="text-xs text-slate-500">{variant.description}</p>
-          <div className="h-[60vh] w-full">
-            <PlaygroundCanvas variant={variant} />
-          </div>
-        </section>
-      ))}
+      {BOARD_SIZES.map((size) => {
+        const variant = buildVariant(size);
+        return (
+          <section key={variant.id} className="flex flex-col gap-2">
+            <h2 className="font-mono text-sm">
+              {variant.label} — {variant.pieceCount} pieces (default traits)
+            </h2>
+            <p className="text-xs text-slate-500">
+              {variant.traits.map((t) => t.label.toLowerCase()).join(', ')} · call &quot;
+              {variant.call}!&quot;
+            </p>
+            <div className="h-[60vh] w-full">
+              <PlaygroundCanvas variant={variant} />
+            </div>
+          </section>
+        );
+      })}
     </main>
   );
 }

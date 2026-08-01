@@ -24,7 +24,8 @@ import {
 } from '@/components/ui/select';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
-import { VARIANTS, getVariant } from '@/lib/game/variants';
+import { BOARD_SIZES, CALLS, MIN_TRAITS, TRAIT_CATALOG, buildVariant } from '@/lib/game/variants';
+import { useVariantConfig } from '@/hooks/use-variant-config';
 import {
   useUiStore,
   type CameraMode,
@@ -39,7 +40,10 @@ interface SettingsDrawerProps {
 
 const SELECT_TRIGGER_W = 'w-40';
 
-const VARIANT_OPTIONS = VARIANTS.map((v) => ({ value: v.id, label: v.label }));
+const BOARD_OPTIONS = BOARD_SIZES.map((n) => ({
+  value: String(n),
+  label: `${n}×${n} - ${CALLS[n]}`,
+}));
 
 const OPPONENT_OPTIONS: Array<{ value: OpponentMode; label: string }> = [
   { value: 'hot-seat', label: 'Hot-seat' },
@@ -141,8 +145,13 @@ function RangeRow({ label, value, min, max, step, onChange }: RangeRowProps) {
 export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
   const isOpen = useUiStore((s) => s.drawerOpen);
   const setOpen = useUiStore((s) => s.setDrawer);
-  const variantId = useUiStore((s) => s.variantId);
-  const setVariantId = useUiStore((s) => s.setVariantId);
+  const boardSize = useUiStore((s) => s.boardSize);
+  const setBoardSize = useUiStore((s) => s.setBoardSize);
+  const setTraitsForSize = useUiStore((s) => s.setTraitsForSize);
+  const resetTraitsForSize = useUiStore((s) => s.resetTraitsForSize);
+  const variantConfig = useVariantConfig();
+  const variant = buildVariant(variantConfig.boardSize, variantConfig.traitIds);
+  const selectedTraits = variant.config.traitIds;
   const opponent = useUiStore((s) => s.opponent);
   const setOpponent = useUiStore((s) => s.setOpponent);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
@@ -185,15 +194,14 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
         <div className="mt-6 flex flex-col gap-5 text-sm">
           <Group title="Play">
-            <Field label="Variant">
+            <Field label="Board">
               <Picker
-                label="Variant"
-                value={variantId}
-                options={VARIANT_OPTIONS}
-                onChange={setVariantId}
+                label="Board"
+                value={String(boardSize)}
+                options={BOARD_OPTIONS}
+                onChange={(v) => setBoardSize(Number(v))}
               />
             </Field>
-            <p className="text-xs text-slate-500">{getVariant(variantId).description}</p>
             <Field label="Opponent">
               <Picker
                 label="Opponent"
@@ -217,6 +225,47 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
                 onCheckedChange={setConfirmEnabled}
               />
             </Field>
+          </Group>
+
+          <Group title="Traits">
+            <p className="text-xs text-slate-500">
+              {`${variant.label} board · ${selectedTraits.length} traits · ${variant.pieceCount} pieces · call "${variant.call}!". Changing traits starts a new game.`}
+            </p>
+            {TRAIT_CATALOG.map((trait) => {
+              const checked = selectedTraits.includes(trait.id);
+              const conflict = trait.conflictsWith.find((id) => selectedTraits.includes(id));
+              const atMinimum = checked && selectedTraits.length <= MIN_TRAITS;
+              const disabled = (!checked && conflict !== undefined) || atMinimum;
+              const toggle = (on: boolean) => {
+                const next = on
+                  ? [...selectedTraits, trait.id]
+                  : selectedTraits.filter((id) => id !== trait.id);
+                setTraitsForSize(boardSize, next);
+              };
+              return (
+                <div key={trait.id} className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <Label className="text-[var(--color-ink)]">
+                      {trait.label} — {trait.values[0]} / {trait.values[1]}
+                    </Label>
+                    {!checked && conflict !== undefined && (
+                      <span className="text-xs text-slate-500">
+                        conflicts with {conflict} — deselect it first
+                      </span>
+                    )}
+                  </div>
+                  <Switch
+                    aria-label={`Trait ${trait.label}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onCheckedChange={toggle}
+                  />
+                </div>
+              );
+            })}
+            <Button variant="outline" size="sm" onClick={() => resetTraitsForSize(boardSize)}>
+              Reset to default traits
+            </Button>
           </Group>
 
           <Group title="Camera">

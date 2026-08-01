@@ -1,5 +1,5 @@
 import type { Bot, BotInput, BotMove } from './types';
-import { getVariant } from '@/lib/game/variants';
+import { variantFromConfig } from '@/lib/game/variants';
 import { findWin } from '@/lib/game/win';
 
 function pickRandom<T>(arr: readonly T[]): T {
@@ -8,7 +8,7 @@ function pickRandom<T>(arr: readonly T[]): T {
 }
 
 export function decideRandom({ G, stage }: BotInput): BotMove {
-  const variant = getVariant(G.variantId);
+  const variant = variantFromConfig(G.variant);
   // Free win — always claim it.
   if (findWin(G.board, variant) !== null) {
     return { kind: 'callQuarto' };

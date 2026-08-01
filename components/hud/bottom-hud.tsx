@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { findWin } from '@/lib/game/win';
-import { describePiece, getVariant } from '@/lib/game/variants';
+import { describePiece, variantFromConfig } from '@/lib/game/variants';
 import { useSfx } from '@/hooks/use-sfx';
 import { useHoverStore } from '@/lib/state/hover-store';
 import type { QuartoState } from '@/lib/game/definition';
@@ -30,7 +30,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
   const playSfx = useSfx();
   const hoveredPiece = useHoverStore((s) => s.piece);
   const G = state?.G;
-  const variant = getVariant(G?.variantId);
+  const variant = variantFromConfig(G?.variant);
   const stage = state ? state.ctx.activePlayers?.[state.ctx.currentPlayer] : null;
   const winInfo = useMemo(() => (G ? findWin(G.board, variant) : null), [G, variant]);
   const winAvailable = winInfo !== null;
@@ -110,7 +110,9 @@ export function BottomHud({ state, moves }: BottomHudProps) {
           so the bar reads as a brushed grey surface catching overhead light.
           Trait values shared along the current winning line glow. */}
       <div
-        className="grid w-full max-w-md gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30"
+        className={`grid w-full gap-2 rounded-lg bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 px-4 py-4 font-mono text-lg text-slate-900 capitalize ring-1 ring-slate-500/30 ${
+          variant.traits.length > 4 ? 'max-w-3xl' : 'max-w-md'
+        }`}
         style={{
           gridTemplateColumns: `repeat(${variant.traits.length}, minmax(0, 1fr))`,
           boxShadow:
@@ -123,7 +125,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
               // Both states share padding/rounding so the bar height doesn't jump.
               return (
                 <span
-                  key={`${variant.traits[i]?.name ?? i}-${part}`}
+                  key={`${variant.traits[i]?.id ?? i}-${part}`}
                   className={
                     isShared
                       ? 'rounded-md bg-amber-300 px-2 py-1 text-center font-bold text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_0_0_1px_rgba(180,120,30,0.5)]'
@@ -135,7 +137,7 @@ export function BottomHud({ state, moves }: BottomHudProps) {
               );
             })
           : variant.traits.map((t) => (
-              <span key={t.name} className="rounded-md px-2 py-1 text-center text-slate-500">
+              <span key={t.id} className="rounded-md px-2 py-1 text-center text-slate-500">
                 –
               </span>
             ))}

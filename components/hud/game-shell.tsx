@@ -9,6 +9,7 @@ import { SettingsDrawer } from './settings-drawer';
 import { WinBanner } from './win-banner';
 import { UiThemeSync } from './ui-theme-sync';
 import { useQuartoClient } from '@/hooks/use-quarto-client';
+import { useVariantConfig } from '@/hooks/use-variant-config';
 import { useAiOpponent } from '@/hooks/use-ai-opponent';
 import { useClock } from '@/hooks/use-clock';
 import { useSfxBus } from '@/hooks/use-sfx-bus';
@@ -21,8 +22,8 @@ const BoardCanvas = dynamic(
 );
 
 export function GameShell() {
-  const variantId = useUiStore((s) => s.variantId);
-  const { state, moves, restart } = useQuartoClient(variantId);
+  const variantConfig = useVariantConfig();
+  const { state, moves, restart } = useQuartoClient(variantConfig);
   const opponent = useUiStore((s) => s.opponent);
   const lastOpponent = useRef(opponent);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { getVariant, sharedTraitLabels } from '@/lib/game/variants';
+import { sharedTraitLabels, variantFromConfig } from '@/lib/game/variants';
 import type { QuartoState } from '@/lib/game/definition';
 
 interface WinBannerProps {
@@ -13,7 +13,7 @@ export function WinBanner({ state, onRestart }: WinBannerProps) {
   if (!state) return null;
   const gameover = state.ctx.gameover;
   if (!gameover) return null;
-  const variant = getVariant(state.G.variantId);
+  const variant = variantFromConfig(state.G.variant);
   const winner = state.G.winner;
   const timeoutLoser = state.G.timeoutLoser;
   const aborted = state.G.aborted;

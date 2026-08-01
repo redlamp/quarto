@@ -11,7 +11,8 @@ import { PlacementFlight } from '@/components/board/placement-flight';
 import { CameraRig, CAMERA_PRESETS } from './camera-rig';
 import { useTheme } from '@/lib/theme/context';
 import { useUiStore } from '@/lib/state/ui-store';
-import { getVariant } from '@/lib/game/variants';
+import { useVariantConfig } from '@/hooks/use-variant-config';
+import { variantFromConfig } from '@/lib/game/variants';
 import type { QuartoState } from '@/lib/game/definition';
 import type { Piece } from '@/lib/game/pieces';
 
@@ -42,10 +43,10 @@ export function BoardCanvas({ state, moves }: BoardCanvasProps) {
   const focalPoint = useUiStore((s) => s.focalPoint);
   const drawerOpen = useUiStore((s) => s.drawerOpen);
   const confirmEnabled = useUiStore((s) => s.confirmEnabled);
-  const uiVariantId = useUiStore((s) => s.variantId);
+  const storeConfig = useVariantConfig();
   // Game state is the source of truth for which variant is on the table — the
   // store value only bridges the frame(s) before the rebuilt client reports in.
-  const variant = getVariant(state?.G.variantId ?? uiVariantId);
+  const variant = variantFromConfig(state?.G.variant ?? storeConfig);
   const board = useMemo(() => state?.G.board ?? [], [state?.G.board]);
   const available = state?.G.available ?? [];
   const pendingPlace = state?.G.pendingPlace ?? null;

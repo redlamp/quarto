@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { DEFAULT_VARIANT_ID } from '@/lib/game/variants';
+import { DEFAULT_TRAITS } from '@/lib/game/variants';
 
 export type OpponentMode = 'hot-seat' | 'ai-random';
 export type UiTheme = 'light' | 'dark';
@@ -16,8 +16,13 @@ interface UiState {
   setDrawer: (open: boolean) => void;
 
   // Persisted settings
-  variantId: string;
-  setVariantId: (id: string) => void;
+  boardSize: number;
+  setBoardSize: (size: number) => void;
+
+  // Trait ids per board size; missing sizes fall back to DEFAULT_TRAITS.
+  traitsBySize: Record<string, string[]>;
+  setTraitsForSize: (size: number, traitIds: string[]) => void;
+  resetTraitsForSize: (size: number) => void;
 
   opponent: OpponentMode;
   setOpponent: (mode: OpponentMode) => void;
@@ -69,8 +74,16 @@ export const useUiStore = create<UiState>()(
       closeDrawer: () => set({ drawerOpen: false }),
       setDrawer: (open) => set({ drawerOpen: open }),
 
-      variantId: DEFAULT_VARIANT_ID,
-      setVariantId: (id) => set({ variantId: id }),
+      boardSize: 4,
+      setBoardSize: (size) => set({ boardSize: size }),
+
+      traitsBySize: {},
+      setTraitsForSize: (size, traitIds) =>
+        set((s) => ({ traitsBySize: { ...s.traitsBySize, [String(size)]: traitIds } })),
+      resetTraitsForSize: (size) =>
+        set((s) => ({
+          traitsBySize: { ...s.traitsBySize, [String(size)]: [...(DEFAULT_TRAITS[size] ?? [])] },
+        })),
 
       opponent: 'hot-seat',
       setOpponent: (mode) => set({ opponent: mode }),
@@ -120,7 +133,8 @@ export const useUiStore = create<UiState>()(
       name: 'quarto-settings',
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
-        variantId: s.variantId,
+        boardSize: s.boardSize,
+        traitsBySize: s.traitsBySize,
         opponent: s.opponent,
         themeName: s.themeName,
         lightingPresetName: s.lightingPresetName,

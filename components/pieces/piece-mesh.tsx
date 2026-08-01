@@ -49,6 +49,13 @@ const BASE_OVERHANG = 1.35;
 const HUE_COLORS = ['#c9772e', '#3e6fae'] as const;
 const HUE_MIX = 0.55;
 
+// Opacity trait: clear pieces are glass via transmission (refractive), NOT
+// opacity fading — the ghost preview and dimmed pieces fade, so glass must
+// read as a different phenomenon entirely.
+const GLASS_ROUGHNESS = 0.12;
+const GLASS_IOR = 1.45;
+const GLASS_ENV_INTENSITY = 0.8;
+
 // Hollow trait: a real bore carved into the top (like the wooden originals) —
 // round pieces get it lathed into the profile, square pieces get a solid
 // lower body plus an extruded wall ring with a circular bore.
@@ -199,6 +206,25 @@ export function PieceMesh({
     />
   );
 
+  // Piece body: clay, or glass when the opacity trait reads "clear". Accent
+  // rings and bases stay clay so their contrast survives on glass pieces.
+  const renderBodyMaterial = (meshColor: string) =>
+    v.clear ? (
+      <meshPhysicalMaterial
+        color={meshColor}
+        roughness={GLASS_ROUGHNESS}
+        metalness={0}
+        transmission={1}
+        thickness={radius}
+        ior={GLASS_IOR}
+        envMapIntensity={GLASS_ENV_INTENSITY}
+        transparent={transparent}
+        opacity={opacity}
+      />
+    ) : (
+      renderClayMaterial(meshColor)
+    );
+
   // A contrasting ring around the piece wall at `centerY` — band and stripes
   // share this construction.
   const renderRing = (centerY: number, ringHeight: number, key: string) =>
@@ -242,7 +268,7 @@ export function PieceMesh({
               receiveShadow
               {...raycastProp}
             >
-              {renderClayMaterial(color)}
+              {renderBodyMaterial(color)}
               {outline}
             </RoundedBox>
             {/* Extrusion runs along +z; rotated so it climbs +y from the top
@@ -255,7 +281,7 @@ export function PieceMesh({
               {...raycastProp}
             >
               <primitive object={ringGeometry} attach="geometry" />
-              {renderClayMaterial(color)}
+              {renderBodyMaterial(color)}
               {outline}
             </mesh>
           </>
@@ -269,7 +295,7 @@ export function PieceMesh({
             receiveShadow
             {...raycastProp}
           >
-            {renderClayMaterial(color)}
+            {renderBodyMaterial(color)}
             {outline}
           </RoundedBox>
         )
@@ -279,7 +305,7 @@ export function PieceMesh({
         // at full radius; hollow pieces carve a real bore into the top.
         <mesh castShadow receiveShadow {...raycastProp}>
           <latheGeometry args={[latheProfile, RADIAL_SEGMENTS]} />
-          {renderClayMaterial(color)}
+          {renderBodyMaterial(color)}
           {outline}
         </mesh>
       )}

@@ -27,9 +27,11 @@ tags:
 | Stripes | solid  | striped | two thin rings  | band      |
 | Base    | bare   | plinth  | plate underfoot | —         |
 
-Catalog-only candidates (documented, not implemented): clear/opaque (fights the ghost-preview and dimmed-piece transparency the UI already uses), matte/gloss (vanishes under flat lighting), domed/flat top and top markings (compete with hollow for top real estate), tilt (reads as a glitch), uniform small/large (aliases height × girth).
+Opacity (opaque/clear) joined the catalog 2026-08-01: clear pieces are transmission glass, not opacity fading, so they never read as the ghost preview or dimmed pieces (which fade). Catalog-only candidates (documented, not implemented): matte/gloss (vanishes under flat lighting), domed/flat top and top markings (compete with hollow for top real estate), tilt (reads as a glitch), uniform small/large (aliases height × girth).
 
 **Defaults per board.** 2×2: tone+shape. 3×3: +height. 4×4: canonical four. 5×5: +hue (Quinto). 6×6: +girth (Sesto). Piece count = 2^traits, so 5×5 runs 32 pieces on 25 cells and 6×6 runs 64 on 36 — the game ends on a full board; the generalized draw rule (no win + board full or rack exhausted) covers every combination.
+
+**Board size = trait count (2026-08-01 amendment).** Each trait adds a row and a column: toggling a trait in the picker resizes the board to match (min 2, max 6) and starts a fresh game; the board-size menu acts as a preset that loads that size's remembered (or default) trait set. Note the arithmetic: cells grow as n² but piece combinations grow as 2^n, and the two agree only at n = 2 and n = 4 — canonical Quarto sits on that coincidence. At n = 3 the rack runs out first (8 pieces, 9 cells); at n = 5/6 the rack outnumbers the board (32/25, 64/36), which just widens the pick-a-piece choice. Matching counts was never a rules requirement.
 
 **Trait picker.** Settings drawer lists the catalog with a switch per trait, scoped to the current board size and persisted per size. Conflicting traits disable with an inline reason; a floor of 2 traits; reset-to-default button. Changing traits rebuilds the client (fresh game). Top bar keeps the quick board-size menu (2×2 Secondo … 6×6 Sesto).
 

@@ -119,6 +119,12 @@ describe('visual params', () => {
     expect(none.base).toBe(false);
   });
 
+  it('opacity maps to the clear channel', () => {
+    const v = buildVariant(3, ['tone', 'shape', 'opacity']);
+    expect(visualParamsOf(v, 0b100).clear).toBe(true);
+    expect(visualParamsOf(v, 0b000).clear).toBe(false);
+  });
+
   it('variants without height or hue render neutral defaults', () => {
     const v = buildVariant(2); // tone, shape
     const params = visualParamsOf(v, 0);

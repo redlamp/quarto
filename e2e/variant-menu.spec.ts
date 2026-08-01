@@ -21,7 +21,7 @@ test('board-size menu switches the game and persists across reloads', async ({ p
   await page.evaluate(() => localStorage.clear());
 });
 
-test('trait picker toggles traits for the current board size', async ({ page }) => {
+test('toggling a trait resizes the board to match the trait count', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Open settings/i }).click();
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
@@ -33,14 +33,21 @@ test('trait picker toggles traits for the current board size', async ({ page }) 
   await expect(height).toBeChecked();
   await expect(band).not.toBeChecked();
 
-  // Add band → 5 traits, 32 pieces; stripes becomes unavailable (conflict).
+  // Add band → 5 traits grows the board to 5×5 (Quinto), 32 pieces;
+  // stripes becomes unavailable (conflict).
   await band.click();
-  await expect(page.getByText(/5 traits · 32 pieces/)).toBeVisible();
+  await expect(page.getByText(/5×5 board · 5 traits · 32 pieces/)).toBeVisible();
+  await expect(page.getByLabel('Board', { exact: true })).toContainText('5×5 - Quinto');
   await expect(stripes).toBeDisabled();
 
-  // Reset restores the canonical four.
+  // Remove height → back down to a 4×4 with the custom set.
+  await height.click();
+  await expect(page.getByText(/4×4 board · 4 traits · 16 pieces/)).toBeVisible();
+
+  // Reset restores the current board's default traits.
   await page.getByRole('button', { name: 'Reset to default traits' }).click();
-  await expect(page.getByText(/4 traits · 16 pieces/)).toBeVisible();
+  await expect(band).not.toBeChecked();
+  await expect(height).toBeChecked();
 
   await page.evaluate(() => localStorage.clear());
 });

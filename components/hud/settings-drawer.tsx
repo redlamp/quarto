@@ -24,7 +24,14 @@ import {
 } from '@/components/ui/select';
 import { useTheme } from '@/lib/theme/context';
 import { CLOCK_PRESETS } from '@/lib/clock/math';
-import { BOARD_SIZES, CALLS, MIN_TRAITS, TRAIT_CATALOG, buildVariant } from '@/lib/game/variants';
+import {
+  BOARD_SIZES,
+  CALLS,
+  MAX_TRAITS,
+  MIN_TRAITS,
+  TRAIT_CATALOG,
+  buildVariant,
+} from '@/lib/game/variants';
 import { useVariantConfig } from '@/hooks/use-variant-config';
 import {
   useUiStore,
@@ -229,18 +236,22 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
 
           <Group title="Traits">
             <p className="text-xs text-slate-500">
-              {`${variant.label} board · ${selectedTraits.length} traits · ${variant.pieceCount} pieces · call "${variant.call}!". Changing traits starts a new game.`}
+              {`${variant.label} board · ${selectedTraits.length} traits · ${variant.pieceCount} pieces · call "${variant.call}!". Each trait adds a row and column — toggling one resizes the board and starts a new game.`}
             </p>
             {TRAIT_CATALOG.map((trait) => {
               const checked = selectedTraits.includes(trait.id);
               const conflict = trait.conflictsWith.find((id) => selectedTraits.includes(id));
               const atMinimum = checked && selectedTraits.length <= MIN_TRAITS;
-              const disabled = (!checked && conflict !== undefined) || atMinimum;
+              const atMaximum = !checked && selectedTraits.length >= MAX_TRAITS;
+              const disabled = (!checked && conflict !== undefined) || atMinimum || atMaximum;
               const toggle = (on: boolean) => {
                 const next = on
                   ? [...selectedTraits, trait.id]
                   : selectedTraits.filter((id) => id !== trait.id);
-                setTraitsForSize(boardSize, next);
+                // Board size tracks trait count: the toggled set becomes the
+                // new size's selection and the game moves to that board.
+                setTraitsForSize(next.length, next);
+                setBoardSize(next.length);
               };
               return (
                 <div key={trait.id} className="flex items-center justify-between gap-3">
@@ -252,6 +263,9 @@ export function SettingsDrawer({ onRestart }: SettingsDrawerProps) {
                       <span className="text-xs text-slate-500">
                         conflicts with {conflict} — deselect it first
                       </span>
+                    )}
+                    {atMaximum && conflict === undefined && (
+                      <span className="text-xs text-slate-500">boards stop at 6×6</span>
                     )}
                   </div>
                   <Switch

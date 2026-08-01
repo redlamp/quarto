@@ -19,7 +19,8 @@ export type VisualChannel =
   | 'girth'
   | 'band'
   | 'stripes'
-  | 'base';
+  | 'base'
+  | 'opacity';
 
 export interface TraitSpec {
   id: string;
@@ -110,6 +111,14 @@ export const TRAIT_CATALOG: readonly TraitSpec[] = Object.freeze([
     note: 'Contrasting plate under the piece.',
     conflictsWith: [],
   },
+  {
+    id: 'opacity',
+    label: 'Opacity',
+    values: ['opaque', 'clear'],
+    encode: 'opacity',
+    note: 'Clay vs glass. Clear pieces refract (transmission), so they never read as the fading ghost preview.',
+    conflictsWith: [],
+  },
 ]);
 
 export function getTrait(id: string): TraitSpec | undefined {
@@ -145,7 +154,10 @@ export const DEFAULT_TRAITS: Record<number, readonly string[]> = {
 const WORLD_SCALE: Record<number, number> = { 2: 1.2, 3: 1.1, 4: 1, 5: 0.74, 6: 0.68 };
 const RACK_COLS: Record<number, number> = { 2: 2, 3: 4, 4: 4, 5: 8, 6: 8 };
 
+// Board size is coupled to trait count: n traits play on an n×n board with
+// n-in-a-line wins, so the selectable range matches BOARD_SIZES.
 export const MIN_TRAITS = 2;
+export const MAX_TRAITS = 6;
 
 // What the game stores and the UI persists: a board size plus the trait ids
 // composing the piece set.
@@ -244,6 +256,7 @@ export interface PieceVisualParams {
   band: boolean;
   stripes: boolean;
   base: boolean;
+  clear: boolean;
 }
 
 export function visualParamsOf(variant: VariantDef, piece: Piece): PieceVisualParams {
@@ -258,6 +271,7 @@ export function visualParamsOf(variant: VariantDef, piece: Piece): PieceVisualPa
     band: false,
     stripes: false,
     base: false,
+    clear: false,
   };
   variant.traits.forEach((trait, i) => {
     const v = (piece >> i) & 1;
@@ -288,6 +302,9 @@ export function visualParamsOf(variant: VariantDef, piece: Piece): PieceVisualPa
         break;
       case 'base':
         params.base = v === 1;
+        break;
+      case 'opacity':
+        params.clear = v === 1;
         break;
     }
   });

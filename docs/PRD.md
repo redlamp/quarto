@@ -198,7 +198,7 @@ Primary lens: **design portfolio piece**. Secondary: casual web visitors who may
 ├── wiki/                       # Obsidian project knowledge
 ├── tests/                      # vitest unit + integration
 ├── e2e/                        # playwright
-├── CLAUDE.md
+├── AGENTS.md                   # agent instructions (CLAUDE.md imports it)
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.ts
